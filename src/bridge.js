@@ -578,7 +578,7 @@ var _UI_STRINGS = {
 };
 
 function _detectLang() {
-  var stored = localStorage.getItem('eo-ui-lang');
+  var stored = localStorage.getItem('toy-ui-lang');
   if (stored) return stored;
   var nav = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
   var found = null;
@@ -591,7 +591,7 @@ function _detectLang() {
       if (_SUPPORTED_LANGS[i].code === prefix) { found = _SUPPORTED_LANGS[i]; break; }
     }
   }
-  var detected = found ? found.code : 'en';
+  var detected = found ? found.code : 'tr';
   return detected;
 }
 
@@ -606,7 +606,7 @@ window._t = _t;
 window._SUPPORTED_LANGS = _SUPPORTED_LANGS;
 window._eoSetLang = function(code) {
   window._eoCurrentLang = code;
-  localStorage.setItem('eo-ui-lang', code);
+  localStorage.setItem('toy-ui-lang', code);
 };
 
 // ── end i18n ──
@@ -1833,7 +1833,7 @@ function _ensureCoreProps(ref) {
 
 window.AscDesktopEditor = {
   IsLocalFile: () => true,
-  GetEditorId: () => 'euro-office-lite',
+  GetEditorId: () => 'toy-office',
   CheckNeedWheel: function() { return true; },
 
   getFontsSprite: function(suffix) {
@@ -2092,8 +2092,11 @@ window.AscDesktopEditor = {
     }
   },
 
-  LocalFileCreate: async (type) => {
-    return await invoke('create_new', { docType: type });
+  LocalFileCreate: async function(type) {
+    // New documents are created directly by LocalStartOpen from sdkjs's native empty binary.
+    // Avoid external blank-template resources so Word, Sheet and Presentation use the same path.
+    window._eoLog('[NEW] create empty editor document type=' + type);
+    return 'ok';
   },
 
   DownloadFiles: function(urls, otherParams, callback) {
