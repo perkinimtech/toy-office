@@ -84,11 +84,15 @@ jobs:
           dpkg-deb -x "$DEB" /tmp/toy-deb
           echo "Built package: $DEB"
           find /tmp/toy-deb -maxdepth 5 -type f | sort | head -200
-          strings src-tauri/target/x86_64-unknown-linux-gnu/release/toy-office | grep -q 'TOY Office'
-          strings src-tauri/target/x86_64-unknown-linux-gnu/release/toy-office | grep -q 'PERKİN İMtech. A.Ş.'
-          strings src-tauri/target/x86_64-unknown-linux-gnu/release/toy-office | grep -q 'PDF / Dosya Aç'
-          strings src-tauri/target/x86_64-unknown-linux-gnu/release/toy-office | grep -q 'toy-office'
-          echo "Verified TOY markers inside compiled binary."
+          # Tauri compresses/embeds frontend assets, so plain strings(1) is not a
+          # reliable way to inspect HTML/JS markers in the executable.
+          # Verify package identity/resources instead; staged frontend was already
+          # byte-checked immediately before tauri build.
+          test -x /tmp/toy-deb/usr/bin/toy-office
+          test -f /tmp/toy-deb/usr/share/applications/TOY-Office.desktop
+          grep -q 'TOY Office' /tmp/toy-deb/usr/share/applications/TOY-Office.desktop
+          grep -q 'Exec=toy-office' /tmp/toy-deb/usr/share/applications/TOY-Office.desktop
+          echo "Verified staged frontend and built Debian package identity."
       - name: Smoke test installed package
         run: |
           sudo apt-get install -y xvfb
