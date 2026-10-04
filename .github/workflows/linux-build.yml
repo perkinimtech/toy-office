@@ -45,23 +45,17 @@ jobs:
         run: |
           pip3 install Pillow --quiet
           bash scripts/prepare-fonts.sh
-      - name: Prepare icons
+      - name: Prepare Linux icons
         run: |
           set -euo pipefail
           mkdir -p src-tauri/icons
           test -f src/toy-office-logo.svg
-          rsvg-convert -w 512 -h 512 src/toy-office-logo.svg -o src-tauri/icons/icon.png
-          python3 - <<'PY'
-          from PIL import Image
-          im = Image.open("src-tauri/icons/icon.png").convert("RGBA")
-          # Pillow's ICO writer needs an image large enough for every requested frame.
-          # Keep 256x256 as the ICO master; generate-icons.sh expands PNG resources later.
-          ico = im.resize((256, 256), Image.Resampling.LANCZOS)
-          ico.save("src-tauri/icons/icon.ico", format="ICO",
-                   sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
-          PY
-          bash scripts/generate-icons.sh
-          echo "TOY icon SHA256:"
+          for size in 32 128 256 512; do
+            rsvg-convert -w "$size" -h "$size" src/toy-office-logo.svg -o "src-tauri/icons/${size}x${size}.png"
+          done
+          cp src-tauri/icons/512x512.png src-tauri/icons/icon.png
+          cp src-tauri/icons/256x256.png src-tauri/icons/128x128@2x.png
+          file src-tauri/icons/*.png
           sha256sum src/toy-office-logo.svg src-tauri/icons/icon.png
 
       - name: Get x2t
