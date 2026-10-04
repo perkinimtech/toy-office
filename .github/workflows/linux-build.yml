@@ -48,20 +48,12 @@ jobs:
       - name: Prepare icons
         run: |
           mkdir -p src-tauri/icons
-          python3 - <<'PY'
-          import base64, re
-          from pathlib import Path
-          from PIL import Image
-          html = Path("src/index.html").read_text(encoding="utf-8")
-          m = re.search(r'class="brand-logo"[^>]+src="data:image/png;base64,([^"]+)"', html)
-          if not m:
-              raise SystemExit("TOY Office embedded logo not found")
-          raw = base64.b64decode(m.group(1))
-          Path("/tmp/toy-logo.png").write_bytes(raw)
-          img = Image.open("/tmp/toy-logo.png").convert("RGBA").resize((256, 256), Image.LANCZOS)
-          img.save("src-tauri/icons/icon.ico", format="ICO", sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
-          PY
+          # Build-safe fallback: keep packaging independent from launcher artwork.
+          curl -L --fail --silent --show-error \
+            -o src-tauri/icons/icon.ico \
+            https://raw.githubusercontent.com/delmarguillen/euro-office-lite/8171534ed2f9f3862d85d3f0d0d68b0db0d6440d/src-tauri/icons/icon.ico
           bash scripts/generate-icons.sh
+
       - name: Get x2t
         run: bash scripts/get-x2t-ci.sh x86_64-unknown-linux-gnu
         env:
