@@ -65,11 +65,14 @@ jobs:
         run: |
           set -euo pipefail
           grep -q '<title>TOY Office</title>' src-dist/index.html
+          grep -q 'Build 18' src-dist/index.html
+          grep -q 'data-pdf="true"' src-dist/index.html
+          grep -q "open_pdf_viewer" src-dist/editor-patches.js
           grep -q 'PERKİN İMtech. A.Ş.' src-dist/index.html
           grep -q 'PDF / Dosya Aç' src-dist/index.html
           grep -q "GetEditorId: () => 'toy-office'" src-dist/bridge.js
           grep -q "LocalFileCreate" src-dist/bridge.js
-          ! grep -q 'Euro Office Lite' src-dist/index.html
+          ! grep -R -I -E -q 'Euro[- ]Office( Lite)?' src-dist --include='*.js' --include='*.html' --include='*.json' --include='*.css'
           echo "Verified staged TOY frontend."
 
       - name: Build .deb
