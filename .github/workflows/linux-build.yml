@@ -72,16 +72,20 @@ jobs:
       - name: Verify staged TOY frontend
         run: |
           set -euo pipefail
-          grep -q '<title>TOY Office</title>' src-dist/index.html
-          grep -q 'Build 18' src-dist/index.html
-          test -s src-dist/toy-office-logo.svg
-          grep -q 'data-pdf="true"' src-dist/index.html
-          grep -q "open_pdf_viewer" src-dist/editor-patches.js
-          grep -q 'PERKİN İMtech. A.Ş.' src-dist/index.html
-          grep -q 'PDF / Dosya Aç' src-dist/index.html
-          grep -q "GetEditorId: () => 'toy-office'" src-dist/bridge.js
-          grep -q "LocalFileCreate" src-dist/bridge.js
-          ! grep -R -I -E -q 'Euro[- ]Office( Lite)?' src-dist --include='*.js' --include='*.html' --include='*.json' --include='*.css'
+          check() { echo "[verify] $1"; shift; "$@"; }
+          check "TOY title" grep -q '<title>TOY Office</title>' src-dist/index.html
+          check "Build marker" grep -q 'Build 18' src-dist/index.html
+          check "PDF button" grep -q 'data-pdf="true"' src-dist/index.html
+          check "PDF native command" grep -q "open_pdf_viewer" src-dist/editor-patches.js
+          check "Company branding" grep -q 'PERKİN İMtech. A.Ş.' src-dist/index.html
+          check "Packaged logo" test -s src-dist/toy-office-logo.svg
+          check "TOY editor id" grep -q "GetEditorId: () => 'toy-office'" src-dist/bridge.js
+          check "LocalFileCreate bridge" grep -q "LocalFileCreate" src-dist/bridge.js
+          echo "[verify] legacy branding scrub"
+          if grep -R -I -E -n -m 5 'Euro[- ]Office( Lite)?' src-dist --include='*.js' --include='*.html' --include='*.json' --include='*.css'; then
+            echo "Legacy Euro Office branding remains in staged frontend."
+            exit 1
+          fi
           echo "Verified staged TOY frontend."
 
       - name: Build .deb
