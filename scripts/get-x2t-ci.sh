@@ -60,8 +60,18 @@ if ls "$TARGET_DIR"/$CHECK_PATTERN 1>/dev/null 2>&1; then
     exit 0
 fi
 
-log "Downloading $ZIP_NAME from 'dependencies' release..."
-gh release download dependencies --repo "$REPO" --pattern "$ZIP_NAME" --output "$TEMP_ZIP" --clobber
+log "Downloading $ZIP_NAME from upstream dependencies release..."
+if [ "$ZIP_NAME" = "x2t-binaries-linux-x64.zip" ]; then
+    URL="https://github.com/delmarguillen/euro-office-lite/releases/download/dependencies/$ZIP_NAME"
+    EXPECTED_SHA256="0bfe09d38022bd985fc9640dde71bfb9a7dc6f1b81a5781a3e7848aee755f161"
+else
+    URL="https://github.com/delmarguillen/euro-office-lite/releases/download/dependencies/$ZIP_NAME"
+    EXPECTED_SHA256=""
+fi
+curl -fL --retry 3 --retry-delay 2 "$URL" -o "$TEMP_ZIP"
+if [ -n "$EXPECTED_SHA256" ]; then
+    echo "$EXPECTED_SHA256  $TEMP_ZIP" | sha256sum -c -
+fi
 
 mkdir -p "$TARGET_DIR"
 
