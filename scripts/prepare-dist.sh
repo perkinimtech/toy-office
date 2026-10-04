@@ -97,6 +97,7 @@ copy_single_file() {
 
 # --- Root files ---
 copy_single_file "$SRC/index.html" "$DIST/index.html" "index.html"
+copy_single_file "$SRC/toy-office-logo.png" "$DIST/toy-office-logo.png" "TOY Office logo"
 copy_single_file "$SRC/bridge.js"  "$DIST/bridge.js"  "bridge.js"
 copy_single_file "$SRC/button-hint-patch.js" "$DIST/button-hint-patch.js" "button-hint-patch.js"
 copy_single_file "$SRC/font-patches.js"      "$DIST/font-patches.js"      "font-patches.js"
