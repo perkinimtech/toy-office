@@ -1,0 +1,46 @@
+{
+  "productName": "TOY Office",
+  "mainBinaryName": "toy-office",
+  "version": "0.1.0-alpha",
+  "identifier": "tr.com.perkinimtech.toyoffice",
+  "build": {
+    "frontendDist": "../src-dist"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "title": "TOY Office",
+        "width": 1280,
+        "height": 800,
+        "resizable": true
+      }
+    ],
+    "security": {
+      "csp": "default-src * 'unsafe-eval' 'unsafe-inline' data: blob: ascdesktop: ipc: http://ipc.localhost; script-src * 'unsafe-eval' 'unsafe-inline'; style-src * 'unsafe-inline'",
+      "dangerousDisableAssetCspModification": true
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb"],
+    "externalBin": ["binaries/x2t"],
+    "fileAssociations": [
+      {
+        "ext": ["docx", "doc", "odt", "rtf"],
+        "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "description": "TOY Office Belgesi"
+      },
+      {
+        "ext": ["xlsx", "xls", "ods"],
+        "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "description": "TOY Office Hesap Tablosu"
+      },
+      {
+        "ext": ["pptx", "ppt", "odp"],
+        "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "description": "TOY Office Sunumu"
+      }
+    ]
+  }
+}
