@@ -65,6 +65,7 @@ jobs:
           sudo apt-get install -y xvfb
           DEB=$(find src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb -name '*.deb' -print -quit)
           test -n "$DEB"
+          DEB=$(readlink -f "$DEB")
           echo "Testing package: $DEB"
           dpkg-deb -f "$DEB" Package Version Architecture
           sudo apt-get install -y "$DEB"
