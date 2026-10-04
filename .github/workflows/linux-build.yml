@@ -54,7 +54,11 @@ jobs:
           python3 - <<'PY'
           from PIL import Image
           im = Image.open("src-tauri/icons/icon.png").convert("RGBA")
-          im.save("src-tauri/icons/icon.ico", sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          # Pillow's ICO writer needs an image large enough for every requested frame.
+          # Keep 256x256 as the ICO master; generate-icons.sh expands PNG resources later.
+          ico = im.resize((256, 256), Image.Resampling.LANCZOS)
+          ico.save("src-tauri/icons/icon.ico", format="ICO",
+                   sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
           PY
           bash scripts/generate-icons.sh
           echo "TOY icon SHA256:"
