@@ -47,12 +47,24 @@ jobs:
           bash scripts/prepare-fonts.sh
       - name: Prepare icons
         run: |
+          set -euo pipefail
           mkdir -p src-tauri/icons
-          # Build-safe fallback: keep packaging independent from launcher artwork.
-          curl -L --fail --silent --show-error \
-            -o src-tauri/icons/icon.ico \
-            https://raw.githubusercontent.com/delmarguillen/euro-office-lite/8171534ed2f9f3862d85d3f0d0d68b0db0d6440d/src-tauri/icons/icon.ico
+          test -f src/toy-office-logo.png
+          python3 - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+          src = Path("src/toy-office-logo.png")
+          im = Image.open(src).convert("RGBA")
+          side = max(im.size)
+          square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
+          square.alpha_composite(im, ((side-im.width)//2, (side-im.height)//2))
+          square = square.resize((512, 512), Image.Resampling.LANCZOS)
+          square.save("src-tauri/icons/icon.png")
+          square.save("src-tauri/icons/icon.ico", sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          PY
           bash scripts/generate-icons.sh
+          echo "TOY icon SHA256:"
+          sha256sum src/toy-office-logo.png src-tauri/icons/icon.png
 
       - name: Get x2t
         run: bash scripts/get-x2t-ci.sh x86_64-unknown-linux-gnu
@@ -66,6 +78,7 @@ jobs:
           set -euo pipefail
           grep -q '<title>TOY Office</title>' src-dist/index.html
           grep -q 'Build 18' src-dist/index.html
+          test -s src-dist/toy-office-logo.png
           grep -q 'data-pdf="true"' src-dist/index.html
           grep -q "open_pdf_viewer" src-dist/editor-patches.js
           grep -q 'PERKİN İMtech. A.Ş.' src-dist/index.html
@@ -95,6 +108,8 @@ jobs:
           test -f /tmp/toy-deb/usr/share/applications/TOY-Office.desktop
           grep -q 'TOY Office' /tmp/toy-deb/usr/share/applications/TOY-Office.desktop
           grep -q 'Exec=toy-office' /tmp/toy-deb/usr/share/applications/TOY-Office.desktop
+          grep -q '^Icon=' /tmp/toy-deb/usr/share/applications/TOY-Office.desktop
+          find /tmp/toy-deb/usr/share/icons -type f -print -quit | grep -q .
           echo "Verified staged frontend and built Debian package identity."
       - name: Smoke test installed package
         run: |
