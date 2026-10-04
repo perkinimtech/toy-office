@@ -26,7 +26,7 @@
     .start.hidden { display: none; }
 
     h1 { font-size: 2rem; font-weight: 300; margin-bottom: 0.5rem; }
-    .brand-logo { width:96px; height:96px; object-fit:contain; margin:0 auto .8rem; display:block; }
+    .brand-logo { width:220px; height:220px; object-fit:contain; margin:0 auto .8rem; display:block; border-radius:18px; }
     .version { font-size: 0.85rem; color: #6c7086; margin-bottom: 2rem; }
     .actions { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
     .btn {
@@ -164,38 +164,38 @@
       <p class="version">0.1.0-alpha · PERKİN İMtech. A.Ş.</p>
       <div class="actions">
         <button class="btn" data-type="word">
-          <span class="icon">W</span> <span data-i18n="document">Document</span>
+          <span class="icon">W</span> <span data-i18n="document">Belge</span>
         </button>
         <button class="btn" data-type="cell">
-          <span class="icon">X</span> <span data-i18n="spreadsheet">Spreadsheet</span>
+          <span class="icon">X</span> <span data-i18n="spreadsheet">Hesap Tablosu</span>
         </button>
         <button class="btn" data-type="slide">
-          <span class="icon">P</span> <span data-i18n="presentation">Presentation</span>
+          <span class="icon">P</span> <span data-i18n="presentation">Sunum</span>
         </button>
         <button class="btn" data-open="true">
-          <span class="icon">...</span> <span data-i18n="openFile">Open file</span>
+          <span class="icon">...</span> <span data-i18n="openFile">PDF / Dosya Aç</span>
         </button>
       </div>
 
       <div class="recover" id="recover-block" hidden>
         <div class="recent-head">
-          <span data-i18n="recoveredDocuments">Recovered documents</span>
+          <span data-i18n="recoveredDocuments">Kurtarılan belgeler</span>
           <button type="button" class="recent-clear" id="recover-discard-all"
-                  data-i18n="discardAll">Discard all</button>
+                  data-i18n="discardAll">Tümünü sil</button>
         </div>
         <ul class="recent-list" id="recover-list"></ul>
       </div>
 
       <div class="recent">
         <div class="recent-head" id="recent-head">
-          <span data-i18n="recentFiles">Recent files</span>
-          <button type="button" class="recent-clear" id="recent-clear" data-i18n="clearRecent">Clear</button>
+          <span data-i18n="recentFiles">Son dosyalar</span>
+          <button type="button" class="recent-clear" id="recent-clear" data-i18n="clearRecent">Temizle</button>
         </div>
         <ul class="recent-list" id="recent-list"></ul>
-        <p class="recent-empty" id="recent-empty" data-i18n="noRecentFiles">No recent files yet</p>
+        <p class="recent-empty" id="recent-empty" data-i18n="noRecentFiles">Henüz son dosya yok</p>
         <label class="recent-toggle">
           <input type="checkbox" id="recent-remember">
-          <span data-i18n="rememberRecent">Remember recent files</span>
+          <span data-i18n="rememberRecent">Son dosyaları hatırla</span>
         </label>
       </div>
     </div>
