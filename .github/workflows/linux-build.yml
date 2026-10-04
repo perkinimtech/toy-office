@@ -43,16 +43,20 @@ jobs:
           npx grunt develop --desktop=true
       - name: Prepare fonts
         run: |
-          pip3 install Pillow --quiet
+          pip3 install Pillow CairoSVG --quiet
           bash scripts/prepare-fonts.sh
       - name: Prepare Linux icons
         run: |
           set -euo pipefail
           mkdir -p src-tauri/icons
           test -f src/toy-office-logo.svg
-          for size in 32 128 256 512; do
-            rsvg-convert -w "$size" -h "$size" src/toy-office-logo.svg -o "src-tauri/icons/${size}x${size}.png"
-          done
+          python3 - <<'PY'
+          import cairosvg
+          for size in (32, 128, 256, 512):
+              cairosvg.svg2png(url="src/toy-office-logo.svg",
+                               write_to=f"src-tauri/icons/{size}x{size}.png",
+                               output_width=size, output_height=size)
+          PY
           cp src-tauri/icons/512x512.png src-tauri/icons/icon.png
           cp src-tauri/icons/256x256.png src-tauri/icons/128x128@2x.png
           file src-tauri/icons/*.png
