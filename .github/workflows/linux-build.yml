@@ -1,0 +1,61 @@
+name: TOY Office Linux Build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [develop]
+    paths:
+      - 'src-tauri/**'
+      - 'src/**'
+      - 'scripts/**'
+      - 'package*.json'
+      - '.gitmodules'
+      - '.github/workflows/linux-build.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-deb:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libjavascriptcoregtk-4.1-dev libsoup-3.0-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libssl-dev patchelf python3-pip rsync bc
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-gnu
+      - name: Install npm dependencies
+        run: npm ci
+      - name: Build sdkjs development scripts
+        run: |
+          cd src/sdkjs/build
+          npm ci
+          npx grunt develop --desktop=true
+      - name: Prepare fonts
+        run: |
+          pip3 install Pillow --quiet
+          bash scripts/prepare-fonts.sh
+      - name: Prepare icons
+        run: bash scripts/generate-icons.sh
+      - name: Get x2t
+        run: bash scripts/get-x2t-ci.sh x86_64-unknown-linux-gnu
+        env:
+          GITHUB_REPOSITORY: delmarguillen/euro-office-lite
+          GH_TOKEN: ${{ github.token }}
+      - name: Stage frontend
+        run: bash scripts/prepare-dist.sh
+      - name: Build .deb
+        run: npx tauri build --target x86_64-unknown-linux-gnu --bundles deb
+      - uses: actions/upload-artifact@v4
+        with:
+          name: toy-office-0.1.0-alpha-linux-amd64
+          path: src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
