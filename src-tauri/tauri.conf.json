@@ -23,24 +23,47 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["deb"],
-    "externalBin": ["binaries/x2t"],
+    "targets": [
+      "deb"
+    ],
+    "externalBin": [
+      "binaries/x2t"
+    ],
     "fileAssociations": [
       {
-        "ext": ["docx", "doc", "odt", "rtf"],
+        "ext": [
+          "docx",
+          "doc",
+          "odt",
+          "rtf"
+        ],
         "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "description": "TOY Office Belgesi"
       },
       {
-        "ext": ["xlsx", "xls", "ods"],
+        "ext": [
+          "xlsx",
+          "xls",
+          "ods"
+        ],
         "mimeType": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         "description": "TOY Office Hesap Tablosu"
       },
       {
-        "ext": ["pptx", "ppt", "odp"],
+        "ext": [
+          "pptx",
+          "ppt",
+          "odp"
+        ],
         "mimeType": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
         "description": "TOY Office Sunumu"
       }
+    ],
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.png"
     ]
   }
 }
