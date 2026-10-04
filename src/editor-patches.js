@@ -773,13 +773,28 @@
       });
     });
 
+    document.querySelector('.btn[data-pdf]').addEventListener('click', async function() {
+      var dialog = window.__TAURI__.dialog;
+      var path = await dialog.open({
+        filters: [{ name: 'PDF', extensions: ['pdf'] }]
+      });
+      if (!path) return;
+      try {
+        await window.__TAURI__.core.invoke('open_pdf_viewer', { path: path });
+      } catch (err) {
+        window._eoLog('[TOY] PDF open failed: ' + ((err && err.message) || err));
+        await window.__TAURI__.dialog.message('PDF dosyası açılamadı.',
+          { title: 'TOY Office', kind: 'error' });
+      }
+    });
+
     document.querySelector('.btn[data-open]').addEventListener('click', async function() {
       if (!window.AscDesktopEditor) return;
 
       var dialog = window.__TAURI__.dialog;
       var path = await dialog.open({
         filters: [
-          { name: _t('documents'), extensions: ['docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'rtf', 'txt', 'csv', 'pdf'] },
+          { name: _t('documents'), extensions: ['docx', 'xlsx', 'pptx', 'odt', 'ods', 'odp', 'rtf', 'txt', 'csv'] },
           { name: _t('all'), extensions: ['*'] }
         ]
       });
