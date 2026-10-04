@@ -60,6 +60,24 @@ jobs:
         run: bash scripts/prepare-dist.sh
       - name: Build .deb
         run: npx tauri build --target x86_64-unknown-linux-gnu --bundles deb
+      - name: Smoke test installed package
+        run: |
+          sudo apt-get install -y xvfb
+          DEB=$(find src-tauri/target/x86_64-unknown-linux-gnu/release/bundle/deb -name '*.deb' -print -quit)
+          test -n "$DEB"
+          echo "Testing package: $DEB"
+          dpkg-deb -f "$DEB" Package Version Architecture
+          sudo apt-get install -y "$DEB"
+          command -v toy-office
+          set +e
+          timeout 20s xvfb-run -a toy-office > /tmp/toy-office-launch.log 2>&1
+          RC=$?
+          set -e
+          if [ "$RC" -ne 0 ] && [ "$RC" -ne 124 ]; then
+            cat /tmp/toy-office-launch.log
+            exit "$RC"
+          fi
+          echo "TOY Office package installed and application stayed alive under Xvfb."
       - uses: actions/upload-artifact@v4
         with:
           name: toy-office-0.1.0-alpha-linux-amd64
