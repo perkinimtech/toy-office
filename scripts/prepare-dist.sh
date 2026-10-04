@@ -102,12 +102,6 @@ copy_single_file "$SRC/button-hint-patch.js" "$DIST/button-hint-patch.js" "butto
 copy_single_file "$SRC/font-patches.js"      "$DIST/font-patches.js"      "font-patches.js"
 copy_single_file "$SRC/editor-patches.js"    "$DIST/editor-patches.js"    "editor-patches.js"
 
-# TOY Office branding must not inherit upstream product strings at runtime.
-# Patch staged Web Apps only; keep upstream source trees untouched for easier rebases.
-while IFS= read -r -d '' f; do
-    sed -i 's/Euro Office Lite/TOY Office/g; s/Euro-Office Lite/TOY Office/g; s/Euro Office/TOY Office/g; s/Euro-Office/TOY Office/g' "$f"
-done < <(find "$DIST" -type f \( -name '*.js' -o -name '*.html' -o -name '*.json' -o -name '*.css' \) -print0 2>/dev/null || true)
-
 # --- Fonts ---
 copy_tree "$SRC/fonts" "$DIST/fonts" "src/fonts"
 
@@ -154,6 +148,12 @@ done
 for d in pdfeditor visioeditor build .docker .github test; do
     log "$(printf 'EXCL: %-55s (not needed at runtime)' "web-apps/$d")"
 done
+
+# TOY Office branding must not inherit upstream product strings at runtime.
+# Patch staged Web Apps only; keep upstream source trees untouched for easier rebases.
+while IFS= read -r -d '' f; do
+    sed -i 's/Euro Office Lite/TOY Office/g; s/Euro-Office Lite/TOY Office/g; s/Euro Office/TOY Office/g; s/Euro-Office/TOY Office/g' "$f"
+done < <(find "$DIST" -type f \( -name '*.js' -o -name '*.html' -o -name '*.json' -o -name '*.css' \) -print0 2>/dev/null || true)
 
 # --- Summary ---
 TOTAL_MB=$(echo "scale=1; $TOTAL_BYTES / 1048576" | bc 2>/dev/null || echo "?")
