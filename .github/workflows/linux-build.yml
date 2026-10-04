@@ -46,7 +46,11 @@ jobs:
           pip3 install Pillow --quiet
           bash scripts/prepare-fonts.sh
       - name: Prepare icons
-        run: bash scripts/generate-icons.sh
+        run: |
+          mkdir -p src-tauri/icons
+          curl -fsSL -o src-tauri/icons/icon.ico https://raw.githubusercontent.com/delmarguillen/euro-office-lite/8171534ed2f9f3862d85d3f0d0d68b0db0d6440d/src-tauri/icons/icon.ico
+          curl -fsSL -o src-tauri/icons/icon.png https://raw.githubusercontent.com/delmarguillen/euro-office-lite/8171534ed2f9f3862d85d3f0d0d68b0db0d6440d/src-tauri/icons/icon.png
+          bash scripts/generate-icons.sh
       - name: Get x2t
         run: bash scripts/get-x2t-ci.sh x86_64-unknown-linux-gnu
         env:
