@@ -49,22 +49,16 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p src-tauri/icons
-          test -f src/toy-office-logo.png
+          test -f src/toy-office-logo.svg
+          rsvg-convert -w 512 -h 512 src/toy-office-logo.svg -o src-tauri/icons/icon.png
           python3 - <<'PY'
           from PIL import Image
-          from pathlib import Path
-          src = Path("src/toy-office-logo.png")
-          im = Image.open(src).convert("RGBA")
-          side = max(im.size)
-          square = Image.new("RGBA", (side, side), (0, 0, 0, 0))
-          square.alpha_composite(im, ((side-im.width)//2, (side-im.height)//2))
-          square = square.resize((512, 512), Image.Resampling.LANCZOS)
-          square.save("src-tauri/icons/icon.png")
-          square.save("src-tauri/icons/icon.ico", sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
+          im = Image.open("src-tauri/icons/icon.png").convert("RGBA")
+          im.save("src-tauri/icons/icon.ico", sizes=[(16,16),(32,32),(48,48),(64,64),(128,128),(256,256)])
           PY
           bash scripts/generate-icons.sh
           echo "TOY icon SHA256:"
-          sha256sum src/toy-office-logo.png src-tauri/icons/icon.png
+          sha256sum src/toy-office-logo.svg src-tauri/icons/icon.png
 
       - name: Get x2t
         run: bash scripts/get-x2t-ci.sh x86_64-unknown-linux-gnu
@@ -78,7 +72,7 @@ jobs:
           set -euo pipefail
           grep -q '<title>TOY Office</title>' src-dist/index.html
           grep -q 'Build 18' src-dist/index.html
-          test -s src-dist/toy-office-logo.png
+          test -s src-dist/toy-office-logo.svg
           grep -q 'data-pdf="true"' src-dist/index.html
           grep -q "open_pdf_viewer" src-dist/editor-patches.js
           grep -q 'PERKİN İMtech. A.Ş.' src-dist/index.html
