@@ -36,6 +36,10 @@
     }
     .btn:hover { background: #45475a; }
     .btn .icon { font-size: 1.5rem; display: block; margin-bottom: 0.4rem; }
+    .btn .app-icon { width: 100px; height: 100px; display: block; object-fit: contain; margin: 0 auto 0.7rem; }
+    .btn .app-icon-fallback { display: none; }
+    .btn { min-width: 170px; }
+    @media (max-width: 640px) { .btn .app-icon { width: 72px; height: 72px; } .btn { min-width: 135px; } }
 
     #placeholder {
       position: absolute; left: 0; top: 0; right: 0; bottom: 0;
@@ -164,19 +168,16 @@
       <p class="version">0.1.0-alpha · Build 18 · PERKİN İMtech. A.Ş.</p>
       <div class="actions">
         <button class="btn" data-type="word">
-          <span class="icon">Y</span> <span data-i18n="document">Yazım</span>
+          <img class="app-icon" src="icons/toy-yazim.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="icon app-icon-fallback">Y</span> <span data-i18n="document">Yazım</span>
         </button>
         <button class="btn" data-type="cell">
-          <span class="icon">X</span> <span data-i18n="spreadsheet">Hesap Tablosu</span>
+          <img class="app-icon" src="icons/toy-hesap-tablosu.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="icon app-icon-fallback">X</span> <span data-i18n="spreadsheet">Hesap Tablosu</span>
         </button>
         <button class="btn" data-type="slide">
-          <span class="icon">P</span> <span data-i18n="presentation">Sunum</span>
+          <img class="app-icon" src="icons/toy-sunum.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="icon app-icon-fallback">P</span> <span data-i18n="presentation">Sunum</span>
         </button>
         <button class="btn" data-pdf="true">
-          <span class="icon">PDF</span> <span>PDF Aç</span>
-        </button>
-        <button class="btn" data-open="true">
-          <span class="icon">↗</span> <span data-i18n="openFile">Dosya Aç</span>
+          <img class="app-icon" src="icons/toy-pdf.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="icon app-icon-fallback">PDF</span> <span>PDF Aç</span>
         </button>
       </div>
 
