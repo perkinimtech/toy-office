@@ -62,6 +62,29 @@ jobs:
           file src-tauri/icons/*.png
           sha256sum src/toy-office-logo.svg src-tauri/icons/icon.png
 
+      - name: Generate blank Office templates
+        run: |
+          set -euo pipefail
+          pip3 install --quiet python-docx openpyxl python-pptx
+          mkdir -p src-tauri/templates
+          python3 - <<'PY'
+          from docx import Document
+          from openpyxl import Workbook
+          from pptx import Presentation
+          from zipfile import ZipFile
+          from pathlib import Path
+
+          target = Path("src-tauri/templates")
+          Document().save(target / "blank.docx")
+          Workbook().save(target / "blank.xlsx")
+          Presentation().save(target / "blank.pptx")
+          for name in ("blank.docx", "blank.xlsx", "blank.pptx"):
+              path = target / name
+              with ZipFile(path) as archive:
+                  assert archive.testzip() is None, f"Corrupt Office template: {name}"
+                  assert "[Content_Types].xml" in archive.namelist()
+              print(f"[templates] {name}: {path.stat().st_size} bytes")
+          PY
       - name: Get x2t
         run: bash scripts/get-x2t-ci.sh x86_64-unknown-linux-gnu
         env:
