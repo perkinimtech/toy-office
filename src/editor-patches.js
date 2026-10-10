@@ -773,7 +773,7 @@
       });
     });
 
-    document.querySelector('.btn[data-pdf]').addEventListener('click', async function() {
+    document.querySelector('.btn[data-pdf]')?.addEventListener('click', async function() {
       var dialog = window.__TAURI__.dialog;
       var path = await dialog.open({
         filters: [{ name: 'PDF', extensions: ['pdf'] }]
