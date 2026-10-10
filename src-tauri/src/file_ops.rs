@@ -221,11 +221,7 @@ async fn open_file_inner(
     let mut opened_blank = false;
     if is_empty_file(&input) {
         if let Some(template) = blank_template_for(&input) {
-            let template_path = app
-                .path()
-                .resource_dir()
-                .map_err(|e| e.to_string())?
-                .join(template);
+            let template_path = resolve_template(&app, template)?;
             source = template_path.to_string_lossy().to_string();
             opened_blank = true;
         }
@@ -496,11 +492,7 @@ pub async fn create_new(
         _ => return Err(format!("Unknown type: {}", doc_type)),
     };
 
-    let template_path = app
-        .path()
-        .resource_dir()
-        .map_err(|e| e.to_string())?
-        .join(template);
+    let template_path = resolve_template(&app, template)?;
 
     *state.current_file.lock().unwrap() = None;
     *state.modified.lock().unwrap() = false;
@@ -634,6 +626,30 @@ pub fn detect_format(path: &PathBuf) -> i32 {
 // Deliberately absent: txt and csv (x2t asks for encoding options through a
 // dialog that is not wired up), pdf (nothing to edit), and the legacy doc/xls/ppt
 // (writing those back is not validated). Those keep the plain rejection.
+// Debian bundles place Tauri resources beside the executable under
+// /usr/lib/TOY-Office. Prefer the resolved resource directory, but also
+// accept the installed bundle location when it differs at runtime.
+fn resolve_template(app: &tauri::AppHandle, template: &str) -> Result<PathBuf, String> {
+    let mut candidates = Vec::new();
+    if let Ok(dir) = app.path().resource_dir() {
+        candidates.push(dir.join(template));
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(parent) = exe.parent() {
+            candidates.push(parent.join(template));
+        }
+    }
+    candidates.push(PathBuf::from("/usr/lib/TOY-Office").join(template));
+    for candidate in &candidates {
+        if candidate.is_file() {
+            return Ok(candidate.clone());
+        }
+    }
+    Err(format!("Office template not found: {} (searched: {})",
+        template,
+        candidates.iter().map(|p| p.display().to_string()).collect::<Vec<_>>().join(", ")))
+}
+
 fn blank_template_for(path: &Path) -> Option<&'static str> {
     let ext = path.extension()?.to_str()?.to_lowercase();
     match ext.as_str() {
