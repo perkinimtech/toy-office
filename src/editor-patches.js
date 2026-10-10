@@ -790,7 +790,7 @@
       }
     });
 
-    document.querySelector('.btn[data-open]').addEventListener('click', async function() {
+    document.querySelector('.btn[data-open]')?.addEventListener('click', async function() {
       if (!window.AscDesktopEditor) return;
 
       var dialog = window.__TAURI__.dialog;
