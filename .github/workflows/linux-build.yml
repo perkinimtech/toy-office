@@ -111,12 +111,25 @@ jobs:
 
       - name: Stage frontend
         run: bash scripts/prepare-dist.sh
+      - name: Stamp visible build identity
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          path = Path("src-dist/index.html")
+          source = path.read_text(encoding="utf-8")
+          marker = "Build 19"
+          assert source.count(marker) == 1, "Expected one build marker in staged HTML"
+          path.write_text(source.replace(marker, "Build " + os.environ["COMMIT_SHA"][:8]), encoding="utf-8")
+          PY
       - name: Verify staged TOY frontend
         run: |
           set -euo pipefail
           check() { echo "[verify] $1"; shift; "$@"; }
           check "TOY title" grep -q '<title>TOY Office</title>' src-dist/index.html
-          check "Build marker" grep -q 'Build 19' src-dist/index.html
+          check "Build marker" grep -q "Build ${GITHUB_SHA:0:8}" src-dist/index.html
           for icon in toy-yazim toy-hesap-tablosu toy-sunum toy-pdf; do
             check "Packaged module icon: $icon" test -s "src-dist/icons/$icon.png"
           done
