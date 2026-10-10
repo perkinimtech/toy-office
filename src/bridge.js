@@ -305,6 +305,32 @@ var _SUPPORTED_LANGS = [
 ];
 
 var _UI_STRINGS = {
+  tr: {
+    document: 'Yazım', spreadsheet: 'Hesap Tablosu', presentation: 'Sunum',
+    export: 'Dışa aktar',
+    openFile: 'Dosya aç', newDocument: 'Yeni belge', newSpreadsheet: 'Yeni hesap tablosu',
+    newPresentation: 'Yeni sunum', unsavedChanges: 'Kaydedilmemiş değişiklikler',
+    unsavedDiscardOpen: 'Geçerli belgede kaydedilmemiş değişiklikler var. Değişiklikleri silip başka bir dosya açmak istiyor musunuz?',
+    unsavedDiscardClose: 'Geçerli belgede kaydedilmemiş değişiklikler var. Kaydetmeden kapatmak istiyor musunuz?',
+    saveError: 'Kaydetme hatası', saveErrorMsg: 'Dosya kaydedilemedi.\\n\\nHedef biçim bu belge türüyle uyumlu değil.',
+    documents: 'Belgeler', all: 'Tümü', plainText: 'Düz metin', user: 'Kullanıcı', language: 'Dil',
+    recoveredDocuments: 'Kurtarılabilir belgeler', recover: 'Kurtar', discard: 'Vazgeç', discardAll: 'Tümünü kaldır',
+    recentFiles: 'Son dosyalar', rememberRecent: 'Son dosyaları hatırla', clearRecent: 'Temizle',
+    noRecentFiles: 'Henüz son dosya yok', openFailed: 'Dosya açılamadı',
+    openFailedMsg: 'Dosya açılamadı. Taşınmış, yeniden adlandırılmış veya silinmiş olabilir.',
+    openErrorMsg: 'Dosya açılamadı. Geçerli bir belge değil veya bozulmuş.',
+    openingFile: '{name} açılıyor…', creatingDocument: 'Belge oluşturuluyor…',
+    removeNoteSeparator: 'Dipnot ayırıcı çizgileri', noteSeparator: 'Dipnot ayırıcı çizgileri',
+    noteSeparatorConfirm: 'Bu belgeden dipnot ve sonnot ayırıcı çizgileri kaldırılsın mı? Değişiklik kaydedilen dosyaya uygulanır.',
+    noteSeparatorConfirmRestore: 'Ayırıcı çizgiler kaldırılmış. Geri yüklensin mi?',
+    noteSeparatorSaveFirst: 'Ayırıcı çizgileri değiştirmeden önce belgeyi kaydedin.',
+    noteSeparatorNoFile: 'Ayırıcı çizgileri değiştirmek için belgeyi .docx olarak kaydedin.',
+    noteSeparatorNotDocx: 'Ayırıcı çizgiler yalnızca .docx belgelerinde değiştirilebilir.',
+    noteSeparatorNoNotes: 'Bu belgede henüz dipnot veya sonnot bulunmuyor. Önce bir not ekleyin.',
+    noteSeparatorAlready: 'Dipnot ayırıcı çizgileri zaten kaldırılmış.',
+    noteSeparatorAlreadyPresent: 'Bu belgede ayırıcı çizgiler zaten var.',
+    noteSeparatorFailed: 'Ayırıcı çizgiler değiştirilemedi.'
+  },
   en: {
     document: 'Document', spreadsheet: 'Spreadsheet', presentation: 'Presentation',
     export: 'Export',
