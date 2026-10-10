@@ -124,6 +124,8 @@ jobs:
           check "Four TOY icon slots" grep -q 'icons/toy-yazim.png' src-dist/index.html
           check "PDF native command" grep -q "open_pdf_viewer" src-dist/editor-patches.js
           check "Company branding" grep -q 'PERKİN İMtech. A.Ş.' src-dist/index.html
+          check "Approved start-screen logo" test -s src-dist/toy-office-app-logo.png
+          check "Start-screen logo reference" grep -q 'src="toy-office-app-logo.png"' src-dist/index.html
           check "Packaged logo" test -s src-dist/toy-office-logo.svg
           check "TOY editor id" grep -q "GetEditorId: () => 'toy-office'" src-dist/bridge.js
           check "LocalFileCreate bridge" grep -q "LocalFileCreate" src-dist/bridge.js
