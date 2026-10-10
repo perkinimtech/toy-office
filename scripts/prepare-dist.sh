@@ -97,7 +97,13 @@ copy_single_file() {
 
 # --- Root files ---
 copy_single_file "$SRC/index.html" "$DIST/index.html" "index.html"
-copy_single_file "$SRC/toy-office-logo.svg" "$DIST/toy-office-logo.svg" "TOY Office logo"
+copy_single_file "$SRC/toy-office-logo.svg" "$DIST/toy-office-logo.svg" "Legacy TOY Office logo"
+# Use the approved Ubuntu application logo on the start screen too.
+if [ ! -s "$PROJECT_ROOT/src-tauri/icons/icon.png" ]; then
+    echo "ERROR: Missing approved TOY Office application logo" >&2
+    exit 1
+fi
+copy_single_file "$PROJECT_ROOT/src-tauri/icons/icon.png" "$DIST/toy-office-app-logo.png" "Approved TOY Office start-screen logo"
 copy_single_file "$SRC/bridge.js"  "$DIST/bridge.js"  "bridge.js"
 copy_single_file "$SRC/button-hint-patch.js" "$DIST/button-hint-patch.js" "button-hint-patch.js"
 copy_single_file "$SRC/font-patches.js"      "$DIST/font-patches.js"      "font-patches.js"
