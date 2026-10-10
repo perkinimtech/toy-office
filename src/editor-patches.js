@@ -676,7 +676,9 @@
           var defaultName = docType === 'cell' ? _t('newSpreadsheet') : docType === 'slide' ? _t('newPresentation') : _t('newDocument');
           window._pendingFileData = { data: b64, path: null, name: defaultName };
         } catch(e) {
-          window._eoLog('[EO] create_new failed: ' + (e.message || e));
+          window._eoLog('[TOY] create_new template unavailable, using editor native empty document: ' + (e.message || e));
+          // LocalStartOpen uses the editor's own empty binary when no pending data exists.
+          window._pendingFileData = null;
         }
       }
       window.AscDesktopEditor._currentDocType = docType;
