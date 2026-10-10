@@ -103,6 +103,15 @@ copy_single_file "$SRC/button-hint-patch.js" "$DIST/button-hint-patch.js" "butto
 copy_single_file "$SRC/font-patches.js"      "$DIST/font-patches.js"      "font-patches.js"
 copy_single_file "$SRC/editor-patches.js"    "$DIST/editor-patches.js"    "editor-patches.js"
 
+# --- TOY Office module icons (required by index.html) ---
+for icon in toy-yazim toy-hesap-tablosu toy-sunum toy-pdf; do
+    if [ ! -s "$SRC/icons/$icon.png" ]; then
+        echo "ERROR: Missing TOY Office module icon: $SRC/icons/$icon.png" >&2
+        exit 1
+    fi
+done
+copy_tree "$SRC/icons" "$DIST/icons" "TOY Office module icons"
+
 # --- Fonts ---
 copy_tree "$SRC/fonts" "$DIST/fonts" "src/fonts"
 
