@@ -90,6 +90,20 @@ jobs:
         env:
           GITHUB_REPOSITORY: delmarguillen/euro-office-lite
           GH_TOKEN: ${{ github.token }}
+      - name: Inspect x2t runtime dependencies
+        run: |
+          set -euo pipefail
+          echo "[x2t] downloaded bundle files:"
+          find src-tauri/binaries -maxdepth 2 -type f | sort | head -100
+          SIDECAR=$(find src-tauri/binaries -maxdepth 1 -type f -name 'x2t-*-linux-gnu' -print -quit)
+          test -n "$SIDECAR"
+          echo "[x2t] runtime linker dependencies:"
+          LD_LIBRARY_PATH="$PWD/src-tauri/binaries" ldd "$SIDECAR" | tee /tmp/toy-x2t-ldd.txt
+          if grep -q 'not found' /tmp/toy-x2t-ldd.txt; then
+            echo "::error::x2t has unresolved shared libraries; do not publish a broken .deb"
+            exit 1
+          fi
+
       - name: Stage frontend
         run: bash scripts/prepare-dist.sh
       - name: Verify staged TOY frontend
