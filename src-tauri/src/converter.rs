@@ -35,15 +35,20 @@ pub async fn convert_file(
     );
     write_file(&params_path, &xml)?;
 
+    // Linux Debian bundles install the x2t sidecar under /usr/bin, while
+    // Tauri resources (if present) live elsewhere. Setting a nonexistent
+    // binaries directory as cwd prevents spawning with OS error 2.
     let mut sidecar = app
         .shell()
         .sidecar("x2t")
         .map_err(|e| e.to_string())?
-        .current_dir(&binaries_dir)
         .args([params_path.to_string_lossy().as_ref()]);
-    #[cfg(target_os = "linux")]
-    {
-        sidecar = sidecar.envs([("LD_LIBRARY_PATH", binaries_dir.to_string_lossy().as_ref())]);
+    if binaries_dir.is_dir() {
+        sidecar = sidecar.current_dir(&binaries_dir);
+        #[cfg(target_os = "linux")]
+        {
+            sidecar = sidecar.envs([("LD_LIBRARY_PATH", binaries_dir.to_string_lossy().as_ref())]);
+        }
     }
     let result = sidecar.output().await.map_err(|e| e.to_string())?;
 
