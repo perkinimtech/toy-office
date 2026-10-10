@@ -148,6 +148,15 @@ jobs:
           grep -q 'Exec=toy-office' /tmp/toy-deb/usr/share/applications/TOY-Office.desktop
           grep -q '^Icon=' /tmp/toy-deb/usr/share/applications/TOY-Office.desktop
           find /tmp/toy-deb/usr/share/icons -type f -print -quit | grep -q .
+          echo "[x2t] checking bundled runtime libraries"
+          test -x /tmp/toy-deb/usr/bin/x2t
+          test -d /tmp/toy-deb/usr/lib/TOY-Office/binaries
+          find /tmp/toy-deb/usr/lib/TOY-Office/binaries -maxdepth 1 -type f -name '*.so*' | grep -q .
+          LD_LIBRARY_PATH="/tmp/toy-deb/usr/lib/TOY-Office/binaries" ldd /tmp/toy-deb/usr/bin/x2t | tee /tmp/toy-packaged-x2t-ldd.txt
+          if grep -q 'not found' /tmp/toy-packaged-x2t-ldd.txt; then
+            echo "::error::Packaged x2t has unresolved shared libraries"
+            exit 1
+          fi
           echo "Verified staged frontend and built Debian package identity."
       - name: Smoke test installed package
         run: |
