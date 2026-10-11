@@ -700,13 +700,17 @@ fn run_font_generation(temp_dir: &std::path::Path, binaries_dir: &std::path::Pat
         Ok(result) => {
             let code = result.status.code().unwrap_or(-1);
             if result.status.success() {
-                let _ = std::fs::write(&marker, "generated");
                 let allfonts_size = std::fs::metadata(fontdata_dir.join("AllFonts.js"))
                     .map(|metadata| metadata.len())
                     .unwrap_or(0);
                 let selection_size = std::fs::metadata(fontdata_dir.join("font_selection.bin"))
                     .map(|metadata| metadata.len())
                     .unwrap_or(0);
+                if allfonts_size > 0 && selection_size > 0 {
+                    let _ = std::fs::write(&marker, "generated");
+                } else {
+                    log_startup(temp_dir, "ERROR: Font generation returned success but font data is missing/empty");
+                }
                 log_startup(
                     temp_dir,
                     &format!(
