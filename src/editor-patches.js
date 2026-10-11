@@ -806,6 +806,8 @@
                   (probeWin === window ? 'host' : 'editor-frame'));
               } catch(e) { _log('[EO] Ready font probe error: ' + e.message); }
             });
+            // Startup marker: emitted unconditionally from the app-ready callback.
+            _log('[EO] TOY build marker: 20261011-font-probe-v2');
             _loadSystemFonts();
           },
           onDocumentReady: function() {
