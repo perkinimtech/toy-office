@@ -537,34 +537,47 @@
           }, 200);
           setTimeout(function() { clearInterval(printSetupInterval); }, 30000);
 
-          // Diagnose font dropdown visibility without modifying its handlers.
-          // Capture a click on the font combo and inspect the actual menu after
-          // the upstream handler has had time to toggle it.
+          // Capture toolbar clicks even when the font control uses an upstream
+          // ID/class different from our assumptions. Read-only diagnostics.
           if (!win._eoFontDropdownProbe) {
             win._eoFontDropdownProbe = true;
-            win.document.addEventListener('click', function(event) {
-              var target = event.target;
-              var combo = target && target.closest &&
-                target.closest('.combo-fontname, #id-toolbar-btn-fontname, .combo-font, [id*="fontname"]');
-              if (!combo) return;
-              setTimeout(function() {
-                try {
-                  var menu = combo.querySelector('.dropdown-menu') ||
-                    (combo.parentElement && combo.parentElement.querySelector('.dropdown-menu'));
-                  var cs = menu && win.getComputedStyle(menu);
-                  var rect = menu && menu.getBoundingClientRect();
-                  var rowCount = menu ? menu.querySelectorAll('li').length : -1;
-                  window._eoLog('[EO] Font dropdown click: combo=' +
-                    (combo.id || combo.className) +
-                    ' menu=' + !!menu + ' rows=' + rowCount +
-                    ' display=' + (cs && cs.display) +
-                    ' visibility=' + (cs && cs.visibility) +
-                    ' opacity=' + (cs && cs.opacity) +
-                    ' size=' + (rect ? Math.round(rect.width) + 'x' + Math.round(rect.height) : 'none') +
-                    ' parent=' + (menu && menu.parentElement && menu.parentElement.className));
-                } catch(e) { window._eoLog('[EO] Font dropdown probe error: ' + e.message); }
-              }, 120);
+            win._eoFontProbeClicks = 0;
+            win.document.addEventListener('pointerdown', function(event) {
+              try {
+                var el = event.target;
+                var path = [];
+                for (var depth = 0; el && depth < 6; depth++, el = el.parentElement) {
+                  path.push((el.tagName || '?').toLowerCase() +
+                    (el.id ? '#' + el.id : '') +
+                    (typeof el.className === 'string' && el.className ?
+                      '.' + el.className.trim().replace(/\\s+/g, '.') : ''));
+                }
+                // Limit logs to the first few clicks; no UI behavior changes.
+                if (win._eoFontProbeClicks++ >= 8) return;
+                win._eoLog('[EO] Toolbar pointer target: ' + path.join(' > '));
+                setTimeout(function() {
+                  try {
+                    var menus = win.document.querySelectorAll('.dropdown-menu');
+                    var visible = [];
+                    for (var i = 0; i < menus.length; i++) {
+                      var menu = menus[i];
+                      var cs = win.getComputedStyle(menu);
+                      var rect = menu.getBoundingClientRect();
+                      if (cs.display !== 'none' || rect.height > 0) {
+                        visible.push((menu.id || menu.className) +
+                          ':rows=' + menu.children.length +
+                          ':display=' + cs.display +
+                          ':visibility=' + cs.visibility +
+                          ':size=' + Math.round(rect.width) + 'x' + Math.round(rect.height));
+                      }
+                    }
+                    win._eoLog('[EO] Dropdown snapshot: total=' + menus.length +
+                      ' visible=' + visible.slice(0, 6).join(' | '));
+                  } catch(e) { win._eoLog('[EO] Dropdown snapshot error: ' + e.message); }
+                }, 150);
+              } catch(e) { win._eoLog('[EO] Toolbar pointer probe error: ' + e.message); }
             }, true);
+            win._eoLog('[EO] Dropdown pointer probe installed');
           }
 
           var fontPatched = false;
