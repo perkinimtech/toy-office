@@ -150,6 +150,8 @@ jobs:
           check "PDF launcher" grep -q 'data-pdf="true"' src-dist/index.html
           check "Four TOY icon slots" grep -q 'icons/toy-yazim.png' src-dist/index.html
           check "PDF native command" grep -q "open_pdf_viewer" src-dist/editor-patches.js
+          check "Font probe included" grep -q "TOY build marker: 20261011-font-probe-v2" src-dist/editor-patches.js
+          check "Ready font probe included" grep -q "Ready font probe installed" src-dist/editor-patches.js
           check "Company branding" grep -q 'PERKİN İMtech. A.Ş.' src-dist/index.html
           check "Approved start-screen logo" test -s src-dist/toy-office-app-logo.png
           check "Start-screen logo reference" grep -q 'src="toy-office-app-logo.png"' src-dist/index.html
