@@ -41,6 +41,12 @@
     .btn { min-width: 170px; }
     @media (max-width: 640px) { .btn .app-icon { width: 72px; height: 72px; } .btn { min-width: 135px; } }
 
+    .template-chooser { width: min(650px, 90vw); margin: 1.2rem auto 0; padding: 1rem; border: 1px solid #45475a; border-radius: 8px; background: #252537; text-align: left; }
+    .template-chooser h2 { font-size: 1rem; font-weight: 500; margin-bottom: .75rem; }
+    .template-options { display: flex; gap: .5rem; flex-wrap: wrap; }
+    .template-options button { background: #313244; border: 1px solid #585b70; color: #cdd6f4; padding: .7rem; border-radius: 6px; cursor: pointer; flex: 1 1 135px; }
+    .template-options button:hover, .template-options button:focus { background: #45475a; border-color: #89b4fa; }
+
     #placeholder {
       position: absolute; left: 0; top: 0; right: 0; bottom: 0;
       display: none;
@@ -180,6 +186,16 @@
           <img class="app-icon" src="icons/toy-pdf.png" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='block'"><span class="icon app-icon-fallback">PDF</span> <span>PDF Aç</span>
         </button>
       </div>
+
+      <section class="template-chooser" id="presentation-templates" hidden aria-label="Sunum şablonları">
+        <h2 id="template-heading">Sunum şablonu seçin</h2>
+        <div class="template-options">
+          <button type="button" data-slide-template="blank">Boş sunum</button>
+          <button type="button" data-slide-template="toy-kurumsal">Kurumsal</button>
+          <button type="button" data-slide-template="toy-kosgeb-proje">KOSGEB Proje</button>
+          <button type="button" data-slide-template="toy-egitim">Eğitim</button>
+        </div>
+      </section>
 
       <div class="recover" id="recover-block" hidden>
         <div class="recent-head">
