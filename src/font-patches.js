@@ -204,7 +204,12 @@
       // If the UI already consumed the bundled list, reset its collection before
       // re-emitting the complete list so the original ten entries are not duplicated.
       var collectionReset = false;
-      var apps = [fw.DE, fw.SSE, fw.PE];
+      // Document editors keep their UI controllers in the host window, not
+      // necessarily in the SDK iframe. Inspect both contexts.
+      var host = null;
+      try { host = fw.parent && fw.parent !== fw ? fw.parent : null; } catch(e) {}
+      var apps = [fw.DE, fw.SSE, fw.PE,
+        host && host.DE, host && host.SSE, host && host.PE];
       for (var ai = 0; ai < apps.length && !collectionReset; ai++) {
         try {
           var app = apps[ai];
@@ -229,6 +234,20 @@
       }
       if (guiFonts.length) {
         loader.Api.sync_InitEditorFonts(guiFonts);
+        // SDK events can fire before the UI fonts controller is instantiated.
+        // Re-publish once after document readiness, and report the UI store.
+        if (!fw._eoFontUiRetryScheduled) {
+          fw._eoFontUiRetryScheduled = true;
+          setTimeout(function() {
+            try {
+              loader.Api.sync_InitEditorFonts(guiFonts);
+              var ui = host || fw;
+              var combos = ui.document.querySelectorAll('[class*="font"]');
+              _log('[EO] Font UI retry: count=' + guiFonts.length +
+                ' fontElements=' + combos.length);
+            } catch(e) { _log('[EO] Font UI retry error: ' + e.message); }
+          }, 3500);
+        }
         _log('[EO] Font list refreshed: count=' + guiFonts.length +
           ' collectionReset=' + collectionReset);
       } else {
