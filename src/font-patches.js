@@ -169,6 +169,7 @@
       if (_systemFontsPromise) return _systemFontsPromise;
       _systemFontsPromise = window.__TAURI__.core.invoke('get_system_fonts').then(function(js) {
         _systemFontsJs = js || '';
+        _log('[EO] System font data received: bytes=' + _systemFontsJs.length);
         return _systemFontsJs;
       }).catch(function(e) {
         _log('[EO] get_system_fonts failed: ' + e.message);
@@ -217,9 +218,8 @@
         } catch(e) {}
       }
 
-      // With no collection yet, or an empty one the UI has not filled, the editor's
-      // normal first font emission already carries the complete list.
-      if (!collectionReset) return;
+      // An empty dropdown may already have missed the SDK's initial event.
+      // Always publish the complete list once system fonts are injected.
       var guiFonts = [];
       for (var i = 0; i < loader.fontInfos.length; i++) {
         var info = loader.fontInfos[i];
@@ -227,7 +227,13 @@
           guiFonts.push(new fw.AscFonts.CFont(info.Name, '', info.Thumbnail));
         }
       }
-      loader.Api.sync_InitEditorFonts(guiFonts);
+      if (guiFonts.length) {
+        loader.Api.sync_InitEditorFonts(guiFonts);
+        _log('[EO] Font list refreshed: count=' + guiFonts.length +
+          ' collectionReset=' + collectionReset);
+      } else {
+        _log('[EO] Font list refresh skipped: fontInfos empty');
+      }
     }
 
     function _installFontThumbnailFallback(fw) {
