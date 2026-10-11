@@ -281,104 +281,19 @@
           return canvas;
         }
 
-        // fillFonts registers store 'add'/'remove' listeners without detaching
-        // the previous ones. Upstream runs it once, but the system-fonts
-        // re-emit from _refreshEditorFonts runs it a second time; the stacked
-        // listeners then prepend every new recent-font row twice (one store
-        // record, two identical li elements). Detach before the original
-        // re-registers so exactly one listener pair remains.
-        var originalFillFonts = Combo.prototype.fillFonts;
-        Combo.prototype.fillFonts = function(store, select) {
-          if (this.store && this.onInsertItem) {
-            this.store.off('add', this.onInsertItem, this);
-            this.store.off('remove', this.onRemoveItem, this);
-          }
-          return originalFillFonts.apply(this, arguments);
-        };
-
-        // Idempotence guard: a row per record id must be unique even if the
-        // listeners above ever stack again through an async re-registration.
-        var originalOnInsertItem = Combo.prototype.onInsertItem;
-        Combo.prototype.onInsertItem = function(item) {
-          if (item && item.id && fw.$(this.el).find('li[id="' + item.id + '"]').length) return;
-          return originalOnInsertItem.apply(this, arguments);
-        };
-
-        var originalLoadSprite = Combo.prototype.loadSprite;
-        Combo.prototype.loadSprite = function(callback) {
-          var combo = this;
-          return originalLoadSprite.call(this, function() {
-            var sprite = combo.spriteThumbs;
-            if (sprite && !sprite._eoFontFallbackPatched) {
-              sprite._eoFontFallbackPatched = true;
-              var originalGetImage = sprite.getImage;
-              sprite.getImage = function(index, canvas, ctx) {
-                var fontName = fw._eoFontThumbnailNames && fw._eoFontThumbnailNames[index];
-                // Every generated thumbnail index belongs to the missing runtime
-                // sprite, including low indexes that overlap the bundled sprite.
-                if (fontName) {
-                  return drawFontName(combo, fontName, canvas, ctx);
-                }
-                return originalGetImage.call(this, index, canvas, ctx);
-              };
-            }
-            callback();
-          });
-        };
-
-        // The generated thumbnail index is not unique (and -1 is shared by many
-        // families), so list rows must use the model's actual name. Resolve the
-        // record through the row's own li id, never by list position: recent
-        // fonts, dividers or menu re-renders shift positional indexes, painting
-        // one font's name on a row whose click applies a different font.
-        Combo.prototype.updateVisibleFontsTiles = function(e, scrollY) {
-          var combo = this, j = 0;
-          var listItems = fw.$(combo.el).find('a');
-          var anchorCount = listItems.length;
-          if (!combo.tiles) combo.tiles = [];
-          if (anchorCount !== combo.tiles.length) {
-            for (j = combo.tiles.length; j < anchorCount; ++j) combo.tiles.unshift(null);
-          }
-          if (typeof scrollY === 'undefined') {
-            scrollY = parseInt(fw.$(combo.el).find('.ps-scrollbar-x-rail').css('bottom'));
-          }
-          var scrollH = fw.$(combo.el).find('.dropdown-menu').height();
-          var itemHeight = combo.getListItemHeight ? combo.getListItemHeight() : 28;
-          var count = Math.max(Math.floor(scrollH / itemHeight) + 3, 0);
-          var from = Math.max(Math.floor(-(scrollY / itemHeight)) - 1, 0);
-          var to = from + count;
-
-          for (j = 0; j < anchorCount; ++j) {
-            var anchor = listItems[j];
-            // A canvas left attached to a replaced or reordered anchor no
-            // longer matches this row; drop it so the row is redrawn.
-            if (combo.tiles[j] && combo.tiles[j].parentNode !== anchor) {
-              if (combo.tiles[j].parentNode) combo.tiles[j].parentNode.removeChild(combo.tiles[j]);
-              combo.tiles[j] = null;
-            }
-            if (from <= j && j < to) {
-              if (null === combo.tiles[j] && anchor) {
-                var rowId = fw.$(anchor).closest('li').attr('id');
-                var record = rowId ? combo.store.findWhere({ id: rowId }) : null;
-                var fontName = record && record.get('name');
-                var fontImage = fontName ? drawFontName(combo, fontName) : null;
-                combo.tiles[j] = fontImage;
-                if (fontImage) anchor.appendChild(fontImage);
-              }
-            } else if (combo.tiles[j]) {
-              if (combo.tiles[j].parentNode) combo.tiles[j].parentNode.removeChild(combo.tiles[j]);
-              combo.tiles[j] = null;
-            }
-          }
-        };
-
+        // Keep upstream ComboBoxFonts event handlers and menu rendering intact.
+        // Earlier overrides of fillFonts/onInsertItem/updateVisibleFontsTiles
+        // interfered with the dropdown. Only replace missing sprite thumbnails.
         var originalGetImageUri = Combo.prototype.getImageUri;
-        Combo.prototype.getImageUri = function(opts) {
-          if (opts && opts.name && fw._eoSystemFontsInjected) {
-            return drawFontName(this, opts.name).toDataURL();
-          }
-          return originalGetImageUri.call(this, opts);
-        };
+        if (typeof originalGetImageUri === 'function') {
+          Combo.prototype.getImageUri = function(opts) {
+            if (opts && opts.name && fw._eoSystemFontsInjected) {
+              return drawFontName(this, opts.name).toDataURL();
+            }
+            return originalGetImageUri.call(this, opts);
+          };
+        }
+        _log('[EO] Font dropdown: native menu handlers preserved');
       } catch(e) {
         _log('[EO] Font thumbnail fallback error: ' + e.message);
       }
