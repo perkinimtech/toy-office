@@ -10,11 +10,10 @@
           var error = event.error || {};
           var source = window._eoSafeSource ?
             window._eoSafeSource(event.filename || '') : (event.filename || '');
-          _log('[IFRAME-ERROR]', {
-            name: error.name,
-            message: event.message || error.message,
-            stack: error.stack
-          }, 'source=' + source + ':' + (event.lineno || 0) + ':' + (event.colno || 0));
+          _log('[IFRAME-ERROR] name=' + (error.name || 'unknown') +
+            ' message=' + (event.message || error.message || 'unknown') +
+            ' stack=' + (error.stack || 'unavailable') +
+            ' source=' + source + ':' + (event.lineno || 0) + ':' + (event.colno || 0));
         }, true);
 
         win.addEventListener('unhandledrejection', function(event) {
@@ -538,6 +537,49 @@
           }, 200);
           setTimeout(function() { clearInterval(printSetupInterval); }, 30000);
 
+          // Capture toolbar clicks even when the font control uses an upstream
+          // ID/class different from our assumptions. Read-only diagnostics.
+          if (!win._eoFontDropdownProbe) {
+            win._eoFontDropdownProbe = true;
+            win._eoFontProbeClicks = 0;
+            win.document.addEventListener('pointerdown', function(event) {
+              try {
+                var el = event.target;
+                var path = [];
+                for (var depth = 0; el && depth < 6; depth++, el = el.parentElement) {
+                  path.push((el.tagName || '?').toLowerCase() +
+                    (el.id ? '#' + el.id : '') +
+                    (typeof el.className === 'string' && el.className ?
+                      '.' + el.className.trim().replace(/\\s+/g, '.') : ''));
+                }
+                // Limit logs to the first few clicks; no UI behavior changes.
+                if (win._eoFontProbeClicks++ >= 8) return;
+                win._eoLog('[EO] Toolbar pointer target: ' + path.join(' > '));
+                setTimeout(function() {
+                  try {
+                    var menus = win.document.querySelectorAll('.dropdown-menu');
+                    var visible = [];
+                    for (var i = 0; i < menus.length; i++) {
+                      var menu = menus[i];
+                      var cs = win.getComputedStyle(menu);
+                      var rect = menu.getBoundingClientRect();
+                      if (cs.display !== 'none' || rect.height > 0) {
+                        visible.push((menu.id || menu.className) +
+                          ':rows=' + menu.children.length +
+                          ':display=' + cs.display +
+                          ':visibility=' + cs.visibility +
+                          ':size=' + Math.round(rect.width) + 'x' + Math.round(rect.height));
+                      }
+                    }
+                    win._eoLog('[EO] Dropdown snapshot: total=' + menus.length +
+                      ' visible=' + visible.slice(0, 6).join(' | '));
+                  } catch(e) { win._eoLog('[EO] Dropdown snapshot error: ' + e.message); }
+                }, 150);
+              } catch(e) { win._eoLog('[EO] Toolbar pointer probe error: ' + e.message); }
+            }, true);
+            win._eoLog('[EO] Dropdown pointer probe installed');
+          }
+
           var fontPatched = false;
           var fontsPreloaded = false;
           var fontPatchInterval = setInterval(function() {
@@ -666,13 +708,13 @@
 
     window._openEditor = openEditor;
     window._eoOpenPath = _openPath;
-    async function openEditor(docType) {
+    async function openEditor(docType, slideTemplate) {
       // Font generation finishes in Tauri setup. Fetch its result before the
       // editor iframe is created so injection does not race LoadDocumentFonts.
       await _prepareSystemFonts();
       if (!window._pendingFileData) {
         try {
-          var b64 = await window.__TAURI__.core.invoke('create_new', { docType: docType });
+          var b64 = await window.__TAURI__.core.invoke('create_new', { docType: docType, slideTemplate: slideTemplate || null });
           var defaultName = docType === 'cell' ? _t('newSpreadsheet') : docType === 'slide' ? _t('newPresentation') : _t('newDocument');
           window._pendingFileData = { data: b64, path: null, name: defaultName };
         } catch(e) {
@@ -728,6 +770,44 @@
                 _injectFontSelections(fw);
               } catch(e) {}
             }
+            // Install probes after editor startup, independently of the
+            // early AscDesktopEditor bridge injection and iframe navigation.
+            [window].concat(Array.prototype.map.call(allFrames, function(frame) {
+              try { return frame.contentWindow; } catch(e) { return null; }
+            })).forEach(function(probeWin) {
+              try {
+                if (!probeWin || !probeWin.document || probeWin.document._eoReadyFontProbe) return;
+                var probeDoc = probeWin.document;
+                probeDoc._eoReadyFontProbe = true;
+                probeDoc.addEventListener('pointerdown', function(event) {
+                  var el = event.target, path = [];
+                  for (var d = 0; el && d < 6; d++, el = el.parentElement) {
+                    path.push((el.tagName || '?').toLowerCase() +
+                      (el.id ? '#' + el.id : '') +
+                      (typeof el.className === 'string' && el.className ?
+                        '.' + el.className.trim().replace(/\\s+/g, '.') : ''));
+                  }
+                  _log('[EO] Ready toolbar pointer: ' + path.join(' > '));
+                  setTimeout(function() {
+                    try {
+                      var menus = probeDoc.querySelectorAll('.dropdown-menu');
+                      var visible = 0;
+                      for (var m = 0; m < menus.length; m++) {
+                        var cs = probeWin.getComputedStyle(menus[m]);
+                        if (cs.display !== 'none' && cs.visibility !== 'hidden' &&
+                            menus[m].getBoundingClientRect().height > 0) visible++;
+                      }
+                      _log('[EO] Ready dropdown snapshot: total=' + menus.length +
+                        ' visible=' + visible);
+                    } catch(e) { _log('[EO] Ready dropdown error: ' + e.message); }
+                  }, 150);
+                }, true);
+                _log('[EO] Ready font probe installed: ' +
+                  (probeWin === window ? 'host' : 'editor-frame'));
+              } catch(e) { _log('[EO] Ready font probe error: ' + e.message); }
+            });
+            // Startup marker: emitted unconditionally from the app-ready callback.
+            _log('[EO] TOY build marker: 20261011-font-probe-v2');
             _loadSystemFonts();
           },
           onDocumentReady: function() {
@@ -770,8 +850,23 @@
 
     document.querySelectorAll('.btn[data-type]').forEach(function(btn) {
       btn.addEventListener('click', function() {
+        if (btn.dataset.type === 'slide') {
+          var chooser = document.getElementById('presentation-templates');
+          chooser.hidden = !chooser.hidden;
+          if (!chooser.hidden) chooser.querySelector('button').focus();
+          return;
+        }
         window._eoShowOpening(_t('creatingDocument'));
         openEditor(btn.dataset.type);
+      });
+    });
+
+    document.querySelectorAll('[data-slide-template]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var chooser = document.getElementById('presentation-templates');
+        chooser.hidden = true;
+        window._eoShowOpening(_t('creatingDocument'));
+        openEditor('slide', btn.dataset.slideTemplate);
       });
     });
 

@@ -169,6 +169,7 @@
       if (_systemFontsPromise) return _systemFontsPromise;
       _systemFontsPromise = window.__TAURI__.core.invoke('get_system_fonts').then(function(js) {
         _systemFontsJs = js || '';
+        _log('[EO] System font data received: bytes=' + _systemFontsJs.length);
         return _systemFontsJs;
       }).catch(function(e) {
         _log('[EO] get_system_fonts failed: ' + e.message);
@@ -203,7 +204,23 @@
       // If the UI already consumed the bundled list, reset its collection before
       // re-emitting the complete list so the original ten entries are not duplicated.
       var collectionReset = false;
-      var apps = [fw.DE, fw.SSE, fw.PE];
+      // Document editors keep their UI controllers in the host window, not
+      // necessarily in the SDK iframe. Inspect both contexts.
+      var host = null;
+      try { host = fw.parent && fw.parent !== fw ? fw.parent : null; } catch(e) {}
+      // ComboBoxFonts is defined by the UI after the SDK frame receives its
+      // font list. Patch both realms at publication time, not only during
+      // the earlier font injection when the class may not exist yet.
+      _installFontThumbnailFallback(fw);
+      if (host) {
+        try {
+          host._eoSystemFontsInjected = true;
+          host._eoFontThumbnailNames = fw._eoFontThumbnailNames;
+          _installFontThumbnailFallback(host);
+        } catch(e) { _log('[EO] Host font fallback error: ' + e.message); }
+      }
+      var apps = [fw.DE, fw.SSE, fw.PE,
+        host && host.DE, host && host.SSE, host && host.PE];
       for (var ai = 0; ai < apps.length && !collectionReset; ai++) {
         try {
           var app = apps[ai];
@@ -217,9 +234,8 @@
         } catch(e) {}
       }
 
-      // With no collection yet, or an empty one the UI has not filled, the editor's
-      // normal first font emission already carries the complete list.
-      if (!collectionReset) return;
+      // An empty dropdown may already have missed the SDK's initial event.
+      // Always publish the complete list once system fonts are injected.
       var guiFonts = [];
       for (var i = 0; i < loader.fontInfos.length; i++) {
         var info = loader.fontInfos[i];
@@ -227,7 +243,29 @@
           guiFonts.push(new fw.AscFonts.CFont(info.Name, '', info.Thumbnail));
         }
       }
-      loader.Api.sync_InitEditorFonts(guiFonts);
+      if (guiFonts.length) {
+        loader.Api.sync_InitEditorFonts(guiFonts);
+        // SDK events can fire before the UI fonts controller is instantiated.
+        // Re-publish once after document readiness, and report the UI store.
+        if (!fw._eoFontUiRetryScheduled) {
+          fw._eoFontUiRetryScheduled = true;
+          setTimeout(function() {
+            try {
+              _installFontThumbnailFallback(fw);
+              if (host) _installFontThumbnailFallback(host);
+              loader.Api.sync_InitEditorFonts(guiFonts);
+              var ui = host || fw;
+              var combos = ui.document.querySelectorAll('[class*="font"]');
+              _log('[EO] Font UI retry: count=' + guiFonts.length +
+                ' fontElements=' + combos.length);
+            } catch(e) { _log('[EO] Font UI retry error: ' + e.message); }
+          }, 3500);
+        }
+        _log('[EO] Font list refreshed: count=' + guiFonts.length +
+          ' collectionReset=' + collectionReset);
+      } else {
+        _log('[EO] Font list refresh skipped: fontInfos empty');
+      }
     }
 
     function _installFontThumbnailFallback(fw) {
@@ -256,104 +294,42 @@
           return canvas;
         }
 
-        // fillFonts registers store 'add'/'remove' listeners without detaching
-        // the previous ones. Upstream runs it once, but the system-fonts
-        // re-emit from _refreshEditorFonts runs it a second time; the stacked
-        // listeners then prepend every new recent-font row twice (one store
-        // record, two identical li elements). Detach before the original
-        // re-registers so exactly one listener pair remains.
-        var originalFillFonts = Combo.prototype.fillFonts;
-        Combo.prototype.fillFonts = function(store, select) {
-          if (this.store && this.onInsertItem) {
-            this.store.off('add', this.onInsertItem, this);
-            this.store.off('remove', this.onRemoveItem, this);
-          }
-          return originalFillFonts.apply(this, arguments);
-        };
-
-        // Idempotence guard: a row per record id must be unique even if the
-        // listeners above ever stack again through an async re-registration.
-        var originalOnInsertItem = Combo.prototype.onInsertItem;
-        Combo.prototype.onInsertItem = function(item) {
-          if (item && item.id && fw.$(this.el).find('li[id="' + item.id + '"]').length) return;
-          return originalOnInsertItem.apply(this, arguments);
-        };
-
+        // In the embedded desktop editor the upstream font sprite URL is
+        // supplied by Desktop.getFontsSprite(). TOY does not ship that sprite.
+        // Upstream fillFonts waits for its load callback before populating or
+        // rendering the dropdown; an unavailable sprite leaves it empty forever.
+        // Supply a local canvas-backed sprite and invoke the normal callback.
         var originalLoadSprite = Combo.prototype.loadSprite;
         Combo.prototype.loadSprite = function(callback) {
+          if (!fw._eoSystemFontsInjected) {
+            return originalLoadSprite.call(this, callback);
+          }
           var combo = this;
-          return originalLoadSprite.call(this, function() {
-            var sprite = combo.spriteThumbs;
-            if (sprite && !sprite._eoFontFallbackPatched) {
-              sprite._eoFontFallbackPatched = true;
-              var originalGetImage = sprite.getImage;
-              sprite.getImage = function(index, canvas, ctx) {
-                var fontName = fw._eoFontThumbnailNames && fw._eoFontThumbnailNames[index];
-                // Every generated thumbnail index belongs to the missing runtime
-                // sprite, including low indexes that overlap the bundled sprite.
-                if (fontName) {
-                  return drawFontName(combo, fontName, canvas, ctx);
-                }
-                return originalGetImage.call(this, index, canvas, ctx);
-              };
+          combo.spriteThumbs = {
+            width: 300,
+            heightOne: 28,
+            getImage: function(index, canvas, ctx) {
+              var name = fw._eoFontThumbnailNames &&
+                fw._eoFontThumbnailNames[index] || 'Font';
+              return drawFontName(combo, String(name), canvas, ctx);
             }
-            callback();
-          });
+          };
+          if (typeof callback === 'function') callback();
         };
 
-        // The generated thumbnail index is not unique (and -1 is shared by many
-        // families), so list rows must use the model's actual name. Resolve the
-        // record through the row's own li id, never by list position: recent
-        // fonts, dividers or menu re-renders shift positional indexes, painting
-        // one font's name on a row whose click applies a different font.
-        Combo.prototype.updateVisibleFontsTiles = function(e, scrollY) {
-          var combo = this, j = 0;
-          var listItems = fw.$(combo.el).find('a');
-          var anchorCount = listItems.length;
-          if (!combo.tiles) combo.tiles = [];
-          if (anchorCount !== combo.tiles.length) {
-            for (j = combo.tiles.length; j < anchorCount; ++j) combo.tiles.unshift(null);
-          }
-          if (typeof scrollY === 'undefined') {
-            scrollY = parseInt(fw.$(combo.el).find('.ps-scrollbar-x-rail').css('bottom'));
-          }
-          var scrollH = fw.$(combo.el).find('.dropdown-menu').height();
-          var itemHeight = combo.getListItemHeight ? combo.getListItemHeight() : 28;
-          var count = Math.max(Math.floor(scrollH / itemHeight) + 3, 0);
-          var from = Math.max(Math.floor(-(scrollY / itemHeight)) - 1, 0);
-          var to = from + count;
-
-          for (j = 0; j < anchorCount; ++j) {
-            var anchor = listItems[j];
-            // A canvas left attached to a replaced or reordered anchor no
-            // longer matches this row; drop it so the row is redrawn.
-            if (combo.tiles[j] && combo.tiles[j].parentNode !== anchor) {
-              if (combo.tiles[j].parentNode) combo.tiles[j].parentNode.removeChild(combo.tiles[j]);
-              combo.tiles[j] = null;
-            }
-            if (from <= j && j < to) {
-              if (null === combo.tiles[j] && anchor) {
-                var rowId = fw.$(anchor).closest('li').attr('id');
-                var record = rowId ? combo.store.findWhere({ id: rowId }) : null;
-                var fontName = record && record.get('name');
-                var fontImage = fontName ? drawFontName(combo, fontName) : null;
-                combo.tiles[j] = fontImage;
-                if (fontImage) anchor.appendChild(fontImage);
-              }
-            } else if (combo.tiles[j]) {
-              if (combo.tiles[j].parentNode) combo.tiles[j].parentNode.removeChild(combo.tiles[j]);
-              combo.tiles[j] = null;
-            }
-          }
-        };
-
+        // Keep upstream ComboBoxFonts event handlers and menu rendering intact.
+        // Earlier overrides of fillFonts/onInsertItem/updateVisibleFontsTiles
+        // interfered with the dropdown. Only replace missing sprite thumbnails.
         var originalGetImageUri = Combo.prototype.getImageUri;
-        Combo.prototype.getImageUri = function(opts) {
-          if (opts && opts.name && fw._eoSystemFontsInjected) {
-            return drawFontName(this, opts.name).toDataURL();
-          }
-          return originalGetImageUri.call(this, opts);
-        };
+        if (typeof originalGetImageUri === 'function') {
+          Combo.prototype.getImageUri = function(opts) {
+            if (opts && opts.name && fw._eoSystemFontsInjected) {
+              return drawFontName(this, opts.name).toDataURL();
+            }
+            return originalGetImageUri.call(this, opts);
+          };
+        }
+        _log('[EO] Font dropdown: native menu handlers preserved');
       } catch(e) {
         _log('[EO] Font thumbnail fallback error: ' + e.message);
       }
@@ -388,6 +364,27 @@
           fw._eoFontThumbnailNames[fontInfo.Thumbnail] = fontInfo.Name;
         }
         _installFontThumbnailFallback(fw);
+        // The SDK creates g_font_loader before attaching its Api. The initial
+        // injection often runs before onAppReady, so publish the list once the
+        // API becomes available rather than permanently skipping it.
+        if (loader && !loader.Api) {
+          var fontPublishAttempts = 0;
+          var fontPublishTimer = setInterval(function() {
+            fontPublishAttempts++;
+            if (loader.Api && typeof loader.Api.sync_InitEditorFonts === 'function') {
+              clearInterval(fontPublishTimer);
+              _refreshEditorFonts(fw, loader);
+            } else if (fontPublishAttempts >= 100 || fw.closed) {
+              clearInterval(fontPublishTimer);
+              _log('[EO] Font publish timeout: attempts=' + fontPublishAttempts +
+                ' api=' + !!loader.Api + ' sync=' +
+                !!(loader.Api && loader.Api.sync_InitEditorFonts));
+            }
+          }, 200);
+        }
+        _log('[EO] Font injection applied: infos=' + (fw.AscFonts.g_font_infos || []).length +
+          ' loader=' + !!loader + ' api=' + !!(loader && loader.Api) +
+          ' sync=' + !!(loader && loader.Api && loader.Api.sync_InitEditorFonts));
         _refreshEditorFonts(fw, loader);
 
         return true;
@@ -398,6 +395,7 @@
       }
     }
 
+    var _fontReadinessLogged = false;
     async function _loadSystemFonts() {
       try {
         var js = await _prepareSystemFonts();
@@ -406,8 +404,15 @@
         for (var fi = 0; fi < allFrames.length; fi++) {
           try {
             var fw = allFrames[fi].contentWindow;
-            _applySystemFontsToFrame(fw);
-          } catch(e) {}
+            var applied = _applySystemFontsToFrame(fw);
+            if (!applied && !_fontReadinessLogged) {
+              _fontReadinessLogged = true;
+              _log('[EO] Font injection waiting: hasData=' + !!_systemFontsJs +
+                ' ascFonts=' + !!(fw && fw.AscFonts) +
+                ' checkAllFonts=' + !!(fw && fw.AscFonts && fw.AscFonts.checkAllFonts) +
+                ' alreadyInjected=' + !!(fw && fw._eoSystemFontsInjected));
+            }
+          } catch(e) { _log('[EO] Font injection frame error: ' + (e.message || e)); }
         }
       } catch(e) {}
     }

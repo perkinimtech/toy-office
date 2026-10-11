@@ -2,6 +2,8 @@ name: TOY Office Linux Build
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: [develop]
   push:
     branches: [develop]
     paths:
@@ -90,6 +92,18 @@ jobs:
                   assert "[Content_Types].xml" in archive.namelist()
               print(f"[templates] {name}: {path.stat().st_size} bytes")
           PY
+      - name: Generate TOY presentation templates
+        run: |
+          python3 scripts/generate-toy-templates.py
+          python3 - <<'PY'
+          from pathlib import Path
+          from pptx import Presentation
+          for name in ("kurumsal", "kosgeb-proje", "egitim"):
+              path = Path(f"src-tauri/templates/toy-{name}.pptx")
+              assert path.is_file() and path.stat().st_size > 0
+              assert len(Presentation(path).slides) == 3
+              print(f"[templates] verified {path}")
+          PY
       - name: Get x2t
         run: bash scripts/get-x2t-ci.sh x86_64-unknown-linux-gnu
         env:
@@ -136,6 +150,8 @@ jobs:
           check "PDF launcher" grep -q 'data-pdf="true"' src-dist/index.html
           check "Four TOY icon slots" grep -q 'icons/toy-yazim.png' src-dist/index.html
           check "PDF native command" grep -q "open_pdf_viewer" src-dist/editor-patches.js
+          check "Font probe included" grep -q "TOY build marker: 20261011-font-probe-v2" src-dist/editor-patches.js
+          check "Ready font probe included" grep -q "Ready font probe installed" src-dist/editor-patches.js
           check "Company branding" grep -q 'PERKİN İMtech. A.Ş.' src-dist/index.html
           check "Approved start-screen logo" test -s src-dist/toy-office-app-logo.png
           check "Start-screen logo reference" grep -q 'src="toy-office-app-logo.png"' src-dist/index.html

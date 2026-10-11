@@ -620,11 +620,16 @@ fn run_font_generation(temp_dir: &std::path::Path, binaries_dir: &std::path::Pat
     let marker = temp_dir.join(".fonts_generated");
 
     let allfonts_server = temp_dir.join("fontdata").join("AllFonts.js");
-    if marker.exists() && allfonts_server.exists() {
+    let selection_bin = temp_dir.join("fontdata").join("font_selection.bin");
+    let font_data_ready = [allfonts_server.as_path(), selection_bin.as_path()]
+        .iter()
+        .all(|path| std::fs::metadata(path).map(|m| m.len() > 0).unwrap_or(false));
+    if marker.exists() && font_data_ready {
         return;
     }
-    if marker.exists() && !allfonts_server.exists() {
-        log_startup(temp_dir, "Marker exists but fontdata/AllFonts.js missing, regenerating");
+    if marker.exists() {
+        log_startup(temp_dir, "Font cache incomplete (AllFonts.js or font_selection.bin missing/empty); regenerating");
+        let _ = std::fs::remove_file(&marker);
     }
 
     log_startup(temp_dir, "First-run font generation starting...");
@@ -695,13 +700,17 @@ fn run_font_generation(temp_dir: &std::path::Path, binaries_dir: &std::path::Pat
         Ok(result) => {
             let code = result.status.code().unwrap_or(-1);
             if result.status.success() {
-                let _ = std::fs::write(&marker, "generated");
                 let allfonts_size = std::fs::metadata(fontdata_dir.join("AllFonts.js"))
                     .map(|metadata| metadata.len())
                     .unwrap_or(0);
                 let selection_size = std::fs::metadata(fontdata_dir.join("font_selection.bin"))
                     .map(|metadata| metadata.len())
                     .unwrap_or(0);
+                if allfonts_size > 0 && selection_size > 0 {
+                    let _ = std::fs::write(&marker, "generated");
+                } else {
+                    log_startup(temp_dir, "ERROR: Font generation returned success but font data is missing/empty");
+                }
                 log_startup(
                     temp_dir,
                     &format!(
