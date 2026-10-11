@@ -165,6 +165,53 @@ for d in pdfeditor visioeditor build .docker .github test; do
     log "$(printf 'EXCL: %-55s (not needed at runtime)' "web-apps/$d")"
 done
 
+# The upstream desktop font picker blocks fillFonts() until a native font
+# thumbnail sprite loads. TOY's Tauri desktop bridge has no native sprite.
+# Patch the staged UI module itself (not the upstream submodule) so its
+# original fillFonts() and dropdown handlers can always finish initializing.
+FONT_COMBO="$DIST/web-apps/apps/common/main/lib/component/ComboBoxFonts.js"
+if [ ! -f "$FONT_COMBO" ]; then
+    echo "ERROR: Missing font combobox module" >&2
+    exit 1
+fi
+python3 - "$FONT_COMBO" <<'PY'
+from pathlib import Path
+import sys
+path = Path(sys.argv[1])
+source = path.read_text()
+old = """            loadSprite: function(callback) {
+                this.spriteThumbs = new CThumbnailLoader();
+                this.spriteThumbs.load(thumbs[thumbIdx].path, callback);
+            },"""
+new = """            loadSprite: function(callback) {
+                // TOY: no native desktop font sprite is provided. Generate
+                // previews on demand and unblock the original fillFonts().
+                this.spriteThumbs = {
+                    width: 300,
+                    heightOne: 28,
+                    getImage: function(index, canvas, ctx) {
+                        canvas = canvas || document.createElement('canvas');
+                        canvas.width = 300;
+                        canvas.height = 28;
+                        canvas.style.width = '300px';
+                        canvas.style.height = '28px';
+                        ctx = ctx || canvas.getContext('2d');
+                        ctx.clearRect(0, 0, 300, 28);
+                        ctx.fillStyle = '#333';
+                        ctx.font = '15px sans-serif';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText('Aa', 8, 14);
+                        return canvas;
+                    }
+                };
+                if (typeof callback === 'function') callback();
+            },"""
+if source.count(old) != 1:
+    raise SystemExit('ERROR: expected upstream ComboBoxFonts.loadSprite once, found ' + str(source.count(old)))
+path.write_text(source.replace(old, new))
+print('TOY font combobox: staged native sprite dependency removed')
+PY
+
 # TOY Office branding must not inherit upstream product strings at runtime.
 # Patch staged Web Apps only; keep upstream source trees untouched for easier rebases.
 while IFS= read -r -d '' f; do
