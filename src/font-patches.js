@@ -208,6 +208,17 @@
       // necessarily in the SDK iframe. Inspect both contexts.
       var host = null;
       try { host = fw.parent && fw.parent !== fw ? fw.parent : null; } catch(e) {}
+      // ComboBoxFonts is defined by the UI after the SDK frame receives its
+      // font list. Patch both realms at publication time, not only during
+      // the earlier font injection when the class may not exist yet.
+      _installFontThumbnailFallback(fw);
+      if (host) {
+        try {
+          host._eoSystemFontsInjected = true;
+          host._eoFontThumbnailNames = fw._eoFontThumbnailNames;
+          _installFontThumbnailFallback(host);
+        } catch(e) { _log('[EO] Host font fallback error: ' + e.message); }
+      }
       var apps = [fw.DE, fw.SSE, fw.PE,
         host && host.DE, host && host.SSE, host && host.PE];
       for (var ai = 0; ai < apps.length && !collectionReset; ai++) {
@@ -240,6 +251,8 @@
           fw._eoFontUiRetryScheduled = true;
           setTimeout(function() {
             try {
+              _installFontThumbnailFallback(fw);
+              if (host) _installFontThumbnailFallback(host);
               loader.Api.sync_InitEditorFonts(guiFonts);
               var ui = host || fw;
               var combos = ui.document.querySelectorAll('[class*="font"]');
