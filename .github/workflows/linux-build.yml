@@ -90,6 +90,18 @@ jobs:
                   assert "[Content_Types].xml" in archive.namelist()
               print(f"[templates] {name}: {path.stat().st_size} bytes")
           PY
+      - name: Generate TOY presentation templates
+        run: |
+          python3 scripts/generate-toy-templates.py
+          python3 - <<'PY'
+          from pathlib import Path
+          from pptx import Presentation
+          for name in ("kurumsal", "kosgeb-proje", "egitim"):
+              path = Path(f"src-tauri/templates/toy-{name}.pptx")
+              assert path.is_file() and path.stat().st_size > 0
+              assert len(Presentation(path).slides) == 3
+              print(f"[templates] verified {path}")
+          PY
       - name: Get x2t
         run: bash scripts/get-x2t-ci.sh x86_64-unknown-linux-gnu
         env:
