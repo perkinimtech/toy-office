@@ -281,6 +281,29 @@
           return canvas;
         }
 
+        // In the embedded desktop editor the upstream font sprite URL is
+        // supplied by Desktop.getFontsSprite(). TOY does not ship that sprite.
+        // Upstream fillFonts waits for its load callback before populating or
+        // rendering the dropdown; an unavailable sprite leaves it empty forever.
+        // Supply a local canvas-backed sprite and invoke the normal callback.
+        var originalLoadSprite = Combo.prototype.loadSprite;
+        Combo.prototype.loadSprite = function(callback) {
+          if (!fw._eoSystemFontsInjected) {
+            return originalLoadSprite.call(this, callback);
+          }
+          var combo = this;
+          combo.spriteThumbs = {
+            width: 300,
+            heightOne: 28,
+            getImage: function(index, canvas, ctx) {
+              var name = fw._eoFontThumbnailNames &&
+                fw._eoFontThumbnailNames[index] || 'Font';
+              return drawFontName(combo, String(name), canvas, ctx);
+            }
+          };
+          if (typeof callback === 'function') callback();
+        };
+
         // Keep upstream ComboBoxFonts event handlers and menu rendering intact.
         // Earlier overrides of fillFonts/onInsertItem/updateVisibleFontsTiles
         // interfered with the dropdown. Only replace missing sprite thumbnails.
