@@ -394,6 +394,9 @@
           fw._eoFontThumbnailNames[fontInfo.Thumbnail] = fontInfo.Name;
         }
         _installFontThumbnailFallback(fw);
+        _log('[EO] Font injection applied: infos=' + (fw.AscFonts.g_font_infos || []).length +
+          ' loader=' + !!loader + ' api=' + !!(loader && loader.Api) +
+          ' sync=' + !!(loader && loader.Api && loader.Api.sync_InitEditorFonts));
         _refreshEditorFonts(fw, loader);
 
         return true;
@@ -404,6 +407,7 @@
       }
     }
 
+    var _fontReadinessLogged = false;
     async function _loadSystemFonts() {
       try {
         var js = await _prepareSystemFonts();
@@ -412,8 +416,15 @@
         for (var fi = 0; fi < allFrames.length; fi++) {
           try {
             var fw = allFrames[fi].contentWindow;
-            _applySystemFontsToFrame(fw);
-          } catch(e) {}
+            var applied = _applySystemFontsToFrame(fw);
+            if (!applied && !_fontReadinessLogged) {
+              _fontReadinessLogged = true;
+              _log('[EO] Font injection waiting: hasData=' + !!_systemFontsJs +
+                ' ascFonts=' + !!(fw && fw.AscFonts) +
+                ' checkAllFonts=' + !!(fw && fw.AscFonts && fw.AscFonts.checkAllFonts) +
+                ' alreadyInjected=' + !!(fw && fw._eoSystemFontsInjected));
+            }
+          } catch(e) { _log('[EO] Font injection frame error: ' + (e.message || e)); }
         }
       } catch(e) {}
     }
