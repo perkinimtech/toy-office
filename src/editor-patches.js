@@ -10,11 +10,10 @@
           var error = event.error || {};
           var source = window._eoSafeSource ?
             window._eoSafeSource(event.filename || '') : (event.filename || '');
-          _log('[IFRAME-ERROR]', {
-            name: error.name,
-            message: event.message || error.message,
-            stack: error.stack
-          }, 'source=' + source + ':' + (event.lineno || 0) + ':' + (event.colno || 0));
+          _log('[IFRAME-ERROR] name=' + (error.name || 'unknown') +
+            ' message=' + (event.message || error.message || 'unknown') +
+            ' stack=' + (error.stack || 'unavailable') +
+            ' source=' + source + ':' + (event.lineno || 0) + ':' + (event.colno || 0));
         }, true);
 
         win.addEventListener('unhandledrejection', function(event) {
