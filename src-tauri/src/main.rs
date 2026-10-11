@@ -620,11 +620,16 @@ fn run_font_generation(temp_dir: &std::path::Path, binaries_dir: &std::path::Pat
     let marker = temp_dir.join(".fonts_generated");
 
     let allfonts_server = temp_dir.join("fontdata").join("AllFonts.js");
-    if marker.exists() && allfonts_server.exists() {
+    let selection_bin = temp_dir.join("fontdata").join("font_selection.bin");
+    let font_data_ready = [allfonts_server.as_path(), selection_bin.as_path()]
+        .iter()
+        .all(|path| std::fs::metadata(path).map(|m| m.len() > 0).unwrap_or(false));
+    if marker.exists() && font_data_ready {
         return;
     }
-    if marker.exists() && !allfonts_server.exists() {
-        log_startup(temp_dir, "Marker exists but fontdata/AllFonts.js missing, regenerating");
+    if marker.exists() {
+        log_startup(temp_dir, "Font cache incomplete (AllFonts.js or font_selection.bin missing/empty); regenerating");
+        let _ = std::fs::remove_file(&marker);
     }
 
     log_startup(temp_dir, "First-run font generation starting...");
