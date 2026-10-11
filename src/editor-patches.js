@@ -665,13 +665,13 @@
 
     window._openEditor = openEditor;
     window._eoOpenPath = _openPath;
-    async function openEditor(docType) {
+    async function openEditor(docType, slideTemplate) {
       // Font generation finishes in Tauri setup. Fetch its result before the
       // editor iframe is created so injection does not race LoadDocumentFonts.
       await _prepareSystemFonts();
       if (!window._pendingFileData) {
         try {
-          var b64 = await window.__TAURI__.core.invoke('create_new', { docType: docType });
+          var b64 = await window.__TAURI__.core.invoke('create_new', { docType: docType, slideTemplate: slideTemplate || null });
           var defaultName = docType === 'cell' ? _t('newSpreadsheet') : docType === 'slide' ? _t('newPresentation') : _t('newDocument');
           window._pendingFileData = { data: b64, path: null, name: defaultName };
         } catch(e) {
@@ -769,8 +769,23 @@
 
     document.querySelectorAll('.btn[data-type]').forEach(function(btn) {
       btn.addEventListener('click', function() {
+        if (btn.dataset.type === 'slide') {
+          var chooser = document.getElementById('presentation-templates');
+          chooser.hidden = !chooser.hidden;
+          if (!chooser.hidden) chooser.querySelector('button').focus();
+          return;
+        }
         window._eoShowOpening(_t('creatingDocument'));
         openEditor(btn.dataset.type);
+      });
+    });
+
+    document.querySelectorAll('[data-slide-template]').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var chooser = document.getElementById('presentation-templates');
+        chooser.hidden = true;
+        window._eoShowOpening(_t('creatingDocument'));
+        openEditor('slide', btn.dataset.slideTemplate);
       });
     });
 
