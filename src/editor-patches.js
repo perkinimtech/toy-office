@@ -770,6 +770,42 @@
                 _injectFontSelections(fw);
               } catch(e) {}
             }
+            // Install probes after editor startup, independently of the
+            // early AscDesktopEditor bridge injection and iframe navigation.
+            [window].concat(Array.prototype.map.call(allFrames, function(frame) {
+              try { return frame.contentWindow; } catch(e) { return null; }
+            })).forEach(function(probeWin) {
+              try {
+                if (!probeWin || !probeWin.document || probeWin.document._eoReadyFontProbe) return;
+                var probeDoc = probeWin.document;
+                probeDoc._eoReadyFontProbe = true;
+                probeDoc.addEventListener('pointerdown', function(event) {
+                  var el = event.target, path = [];
+                  for (var d = 0; el && d < 6; d++, el = el.parentElement) {
+                    path.push((el.tagName || '?').toLowerCase() +
+                      (el.id ? '#' + el.id : '') +
+                      (typeof el.className === 'string' && el.className ?
+                        '.' + el.className.trim().replace(/\\s+/g, '.') : ''));
+                  }
+                  _log('[EO] Ready toolbar pointer: ' + path.join(' > '));
+                  setTimeout(function() {
+                    try {
+                      var menus = probeDoc.querySelectorAll('.dropdown-menu');
+                      var visible = 0;
+                      for (var m = 0; m < menus.length; m++) {
+                        var cs = probeWin.getComputedStyle(menus[m]);
+                        if (cs.display !== 'none' && cs.visibility !== 'hidden' &&
+                            menus[m].getBoundingClientRect().height > 0) visible++;
+                      }
+                      _log('[EO] Ready dropdown snapshot: total=' + menus.length +
+                        ' visible=' + visible);
+                    } catch(e) { _log('[EO] Ready dropdown error: ' + e.message); }
+                  }, 150);
+                }, true);
+                _log('[EO] Ready font probe installed: ' +
+                  (probeWin === window ? 'host' : 'editor-frame'));
+              } catch(e) { _log('[EO] Ready font probe error: ' + e.message); }
+            });
             _loadSystemFonts();
           },
           onDocumentReady: function() {
