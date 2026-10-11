@@ -394,6 +394,24 @@
           fw._eoFontThumbnailNames[fontInfo.Thumbnail] = fontInfo.Name;
         }
         _installFontThumbnailFallback(fw);
+        // The SDK creates g_font_loader before attaching its Api. The initial
+        // injection often runs before onAppReady, so publish the list once the
+        // API becomes available rather than permanently skipping it.
+        if (loader && !loader.Api) {
+          var fontPublishAttempts = 0;
+          var fontPublishTimer = setInterval(function() {
+            fontPublishAttempts++;
+            if (loader.Api && typeof loader.Api.sync_InitEditorFonts === 'function') {
+              clearInterval(fontPublishTimer);
+              _refreshEditorFonts(fw, loader);
+            } else if (fontPublishAttempts >= 100 || fw.closed) {
+              clearInterval(fontPublishTimer);
+              _log('[EO] Font publish timeout: attempts=' + fontPublishAttempts +
+                ' api=' + !!loader.Api + ' sync=' +
+                !!(loader.Api && loader.Api.sync_InitEditorFonts));
+            }
+          }, 200);
+        }
         _log('[EO] Font injection applied: infos=' + (fw.AscFonts.g_font_infos || []).length +
           ' loader=' + !!loader + ' api=' + !!(loader && loader.Api) +
           ' sync=' + !!(loader && loader.Api && loader.Api.sync_InitEditorFonts));
