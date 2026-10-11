@@ -484,11 +484,18 @@ pub async fn create_new(
     app: tauri::AppHandle,
     state: State<'_, AppState>,
     doc_type: String,
+    slide_template: Option<String>,
 ) -> Result<String, String> {
     let template = match doc_type.as_str() {
         "word" => "templates/blank.docx",
         "cell" => "templates/blank.xlsx",
-        "slide" => "templates/blank.pptx",
+        "slide" => match slide_template.as_deref().unwrap_or("blank") {
+            "blank" => "templates/blank.pptx",
+            "toy-kurumsal" => "templates/toy-kurumsal.pptx",
+            "toy-kosgeb-proje" => "templates/toy-kosgeb-proje.pptx",
+            "toy-egitim" => "templates/toy-egitim.pptx",
+            other => return Err(format!("Unknown presentation template: {}", other)),
+        },
         _ => return Err(format!("Unknown type: {}", doc_type)),
     };
 
