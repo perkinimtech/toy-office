@@ -537,6 +537,36 @@
           }, 200);
           setTimeout(function() { clearInterval(printSetupInterval); }, 30000);
 
+          // Diagnose font dropdown visibility without modifying its handlers.
+          // Capture a click on the font combo and inspect the actual menu after
+          // the upstream handler has had time to toggle it.
+          if (!win._eoFontDropdownProbe) {
+            win._eoFontDropdownProbe = true;
+            win.document.addEventListener('click', function(event) {
+              var target = event.target;
+              var combo = target && target.closest &&
+                target.closest('.combo-fontname, #id-toolbar-btn-fontname, .combo-font, [id*="fontname"]');
+              if (!combo) return;
+              setTimeout(function() {
+                try {
+                  var menu = combo.querySelector('.dropdown-menu') ||
+                    (combo.parentElement && combo.parentElement.querySelector('.dropdown-menu'));
+                  var cs = menu && win.getComputedStyle(menu);
+                  var rect = menu && menu.getBoundingClientRect();
+                  var rowCount = menu ? menu.querySelectorAll('li').length : -1;
+                  window._eoLog('[EO] Font dropdown click: combo=' +
+                    (combo.id || combo.className) +
+                    ' menu=' + !!menu + ' rows=' + rowCount +
+                    ' display=' + (cs && cs.display) +
+                    ' visibility=' + (cs && cs.visibility) +
+                    ' opacity=' + (cs && cs.opacity) +
+                    ' size=' + (rect ? Math.round(rect.width) + 'x' + Math.round(rect.height) : 'none') +
+                    ' parent=' + (menu && menu.parentElement && menu.parentElement.className));
+                } catch(e) { window._eoLog('[EO] Font dropdown probe error: ' + e.message); }
+              }, 120);
+            }, true);
+          }
+
           var fontPatched = false;
           var fontsPreloaded = false;
           var fontPatchInterval = setInterval(function() {
